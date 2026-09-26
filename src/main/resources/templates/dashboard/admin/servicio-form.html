@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Servicio | VetWeb Admin')}">
+    <title>Servicio | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/admin/servicios}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a servicios
+                </a>
+
+                <h2 th:text="${idServicio != null} ? 'Editar Servicio' : 'Nuevo Servicio'">Nuevo Servicio</h2>
+
+                <p>Define el nombre, el precio y si está disponible para agendar citas.</p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formServicio" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+                        <i class="bi bi-tag"></i>
+                        <h3>Datos del Servicio</h3>
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="nombre">NOMBRE</label>
+                            <input type="text" id="nombre" required placeholder="Ej. Consulta General">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="precio">PRECIO (S/.)</label>
+                            <input type="number" id="precio" min="0" step="0.01" required value="0">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="activo">ESTADO</label>
+                            <select id="activo">
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota campo-observaciones">
+                            <label for="descripcion">DESCRIPCIÓN</label>
+                            <textarea id="descripcion" rows="3"
+                                placeholder="Detalle del servicio..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/admin/servicios}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar"
+                            onclick="guardar()">
+                            <i class="bi bi-floppy"></i>
+                            <span th:text="${idServicio != null} ? 'Guardar Cambios' : 'Crear Servicio'">Crear Servicio</span>
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const SERVICIO_ID = [[${idServicio}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            if (SERVICIO_ID === null || SERVICIO_ID === undefined) return;
+
+            try {
+                const res = await fetch(`/api/servicios/${SERVICIO_ID}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                const s = await res.json();
+                document.getElementById('nombre').value = s.nombre || '';
+                document.getElementById('precio').value = s.precio != null ? s.precio : '';
+                document.getElementById('descripcion').value = s.descripcion || '';
+                document.getElementById('activo').value = String(!!s.activo);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function guardar() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const payload = {
+                nombre: document.getElementById('nombre').value.trim(),
+                descripcion: document.getElementById('descripcion').value.trim() || null,
+                precio: parseFloat(document.getElementById('precio').value),
+                activo: document.getElementById('activo').value === 'true'
+            };
+
+            const esEdicion = SERVICIO_ID !== null && SERVICIO_ID !== undefined;
+            const url = esEdicion ? `/api/servicios/${SERVICIO_ID}` : '/api/servicios';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard/admin/servicios';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo guardar el servicio');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

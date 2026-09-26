@@ -9,7 +9,11 @@
 
     <div class="dashboard">
 
-        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+        <div th:replace="${rolActual == 'ADMIN'}
+            ? ~{fragments/dashboard-layout :: sidebarAdmin}
+            : (${rolActual == 'VETERINARIO'}
+                ? ~{fragments/dashboard-layout :: sidebarVeterinario}
+                : ~{fragments/dashboard-layout :: sidebarCliente})"></div>
 
         <main class="contenido-dashboard">
 
@@ -53,7 +57,7 @@
                             <span>NÚMERO DE TELÉFONO</span>
                             <p id="campoTelefono">-</p>
                         </div>
-                        <div class="dato-perfil">
+                        <div class="dato-perfil" th:if="${rolActual == 'CLIENTE'}">
                             <span>DNI</span>
                             <p id="campoDni">-</p>
                         </div>
@@ -87,14 +91,9 @@
             document.getElementById('campoTelefono').textContent = u.telefono || '-';
             document.getElementById('campoDireccion').textContent = u.direccion || '-';
 
-            try {
-                const res = await fetch(`/api/clientes/${u.id}`, { credentials: 'same-origin' });
-                if (res.ok) {
-                    const cliente = await res.json();
-                    document.getElementById('campoDni').textContent = cliente.dni || '-';
-                }
-            } catch (e) {
-                document.getElementById('campoDni').textContent = '-';
+            const campoDni = document.getElementById('campoDni');
+            if (campoDni) {
+                campoDni.textContent = u.dni || '-';
             }
         });
     </script>

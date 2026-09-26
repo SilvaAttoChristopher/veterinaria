@@ -2,8 +2,10 @@ package com.example.veterinaria.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,10 +47,10 @@ public class CitaController {
     }
 
     @GetMapping("/veterinario/{idUsuario}/fecha")
-    public List<Cita> findByVeterinarioIdUsuarioAndFecha(
+    public List<Cita> findByUsuarioIdUsuarioAndFecha(
             @PathVariable Long idUsuario,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-        return citaService.findByVeterinarioIdUsuarioAndFecha(idUsuario, fecha);
+        return citaService.findByUsuarioIdUsuarioAndFecha(idUsuario, fecha);
     }
 
     @GetMapping("/estado/{estado}")
@@ -61,20 +63,30 @@ public class CitaController {
         try {
             Cita saved = citaService.save(cita);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("mensaje", e.getMessage()));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensaje", "Ese horario ya está reservado"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(java.util.Map.of("mensaje", e.getMessage()));
+                    .body(Map.of("mensaje", e.getMessage()));
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cita> update(@PathVariable Long id, @RequestBody Cita cita) {
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Cita cita) {
         if (!citaService.findById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
         cita.setIdCita(id);
-        Cita saved = citaService.save(cita);
-        return ResponseEntity.ok(saved);
+        try {
+            return ResponseEntity.ok(citaService.save(cita));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("mensaje", e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

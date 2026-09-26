@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.veterinaria.modelo.*;
 import com.example.veterinaria.repository.*;
@@ -16,17 +17,21 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private ClienteRepository clienteRepository;
-    @Autowired private VeterinarioRepository veterinarioRepository;
     @Autowired private MascotaRepository mascotaRepository;
     @Autowired private ServicioRepository servicioRepository;
+    @Autowired private VacunaRepository vacunaRepository;
     @Autowired private HorarioRepository horarioRepository;
     @Autowired private PermisoRepository permisoRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(String... args) {
-        if (usuarioRepository.count() > 0) return;
+        /* Se comprueba por el usuario semilla y no por count(): si una siembra
+           anterior quedó a medias, así se puede reparar en el siguiente arranque. */
+        if (usuarioRepository.existsByUsername("admin@vet.com")) {
+            return;
+        }
 
         // Roles
         Rol rolCliente = saveRol("CLIENTE");
@@ -63,21 +68,22 @@ public class DataInitializer implements CommandLineRunner {
         admin.setEstado("ACTIVO");
         usuarioRepository.save(admin);
 
-        // Cliente
-        Cliente cliente = new Cliente();
+        // Cliente (tabla única: mismo Usuario, con dni y rol CLIENTE)
+        Usuario cliente = new Usuario();
         cliente.setUsername("cliente@test.com");
         cliente.setPassword(passwordEncoder.encode("cliente123"));
         cliente.setNombres("Juan");
         cliente.setApellidos("Perez");
         cliente.setTelefono("900111222");
         cliente.setCorreo("cliente@test.com");
+        cliente.setDireccion("Av. Venezuela 30, Lima");
         cliente.setRol(rolCliente);
         cliente.setDni("12345678");
         cliente.setEstado("ACTIVO");
-        Cliente savedCliente = clienteRepository.save(cliente);
+        Usuario savedCliente = usuarioRepository.save(cliente);
 
-        // Veterinario
-        Veterinario vet = new Veterinario();
+        // Veterinario (mismo Usuario, con especialidad y rol VETERINARIO)
+        Usuario vet = new Usuario();
         vet.setUsername("vet@test.com");
         vet.setPassword(passwordEncoder.encode("vet123"));
         vet.setNombres("Dra. Maria");
@@ -87,7 +93,7 @@ public class DataInitializer implements CommandLineRunner {
         vet.setRol(rolVet);
         vet.setEspecialidad("Traumatologia y Neurologia");
         vet.setEstado("ACTIVO");
-        Veterinario savedVet = veterinarioRepository.save(vet);
+        Usuario savedVet = usuarioRepository.save(vet);
 
         // Mascotas
         Mascota max = new Mascota();
@@ -120,6 +126,21 @@ public class DataInitializer implements CommandLineRunner {
             servicio.setDescripcion(s[1]);
             servicio.setPrecio(java.math.BigDecimal.valueOf(Double.parseDouble(s[2])));
             servicioRepository.save(servicio);
+        }
+
+        // Vacunas (catálogo necesario para la cartilla de vacunación)
+        String[][] vacunas = {
+            {"Rabia", "Vacuna antirrábica anual"},
+            {"Parvovirus", "Prevención de parvovirosis"},
+            {"Desparasitante", "Tratamiento antiparasitario"},
+            {"Polivalente", "Vacuna polivalente canina y felina"}
+        };
+        for (String[] v : vacunas) {
+            Vacuna vacuna = new Vacuna();
+            vacuna.setNombre(v[0]);
+            vacuna.setDescripcion(v[1]);
+            vacuna.setVigente(true);
+            vacunaRepository.save(vacuna);
         }
 
         // Horarios (Lunes a Viernes 8:00 - 17:00)

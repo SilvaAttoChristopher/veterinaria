@@ -42,8 +42,8 @@ public class HistorialController {
     }
 
     @GetMapping("/veterinario/{idUsuario}")
-    public List<Historial> findByVeterinarioIdUsuario(@PathVariable Long idUsuario) {
-        return historialService.findByVeterinarioIdUsuario(idUsuario);
+    public List<Historial> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
+        return historialService.findByUsuarioIdUsuario(idUsuario);
     }
 
     @PostMapping

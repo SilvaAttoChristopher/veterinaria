@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Panel de Administración | VetWeb')}">
+    <title>Panel de Administración | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="titulo-dashboard">
+                <h2>Resumen General</h2>
+                <p>Estado actual de la clínica veterinaria.</p>
+            </div>
+
+            <!-- indicadores -->
+
+            <section class="perfil-card">
+                <div class="perfil-header">
+                    <h3 style="margin:0;">Indicadores</h3>
+                </div>
+                <div class="perfil-contenido">
+                    <div class="datos-grid" id="kpis">
+                        <div class="dato-perfil">
+                            <span>CARGANDO</span>
+                            <p>—</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- desglose de citas -->
+
+            <section class="perfil-card" style="margin-top:20px;">
+                <div class="perfil-header">
+                    <h3 style="margin:0;">Citas por Estado</h3>
+                </div>
+                <div class="perfil-contenido">
+                    <div class="datos-grid" id="citasEstado">
+                        <p>Cargando...</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            try {
+                const res = await fetch('/api/admin/estadisticas', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                const s = await res.json();
+
+                const kpis = [
+                    ['USUARIOS', s.totalUsuarios],
+                    ['CLIENTES', s.totalClientes],
+                    ['VETERINARIOS', s.totalVeterinarios],
+                    ['MASCOTAS', s.totalMascotas],
+                    ['CITAS', s.totalCitas],
+                    ['ATENCIONES', s.totalHistoriales],
+                    ['BOLETAS', s.totalBoletas],
+                    ['SERVICIOS', s.totalServicios]
+                ];
+
+                document.getElementById('kpis').innerHTML = kpis.map(([k, v]) => `
+                    <div class="dato-perfil">
+                        <span>${k}</span>
+                        <p>${v ?? 0}</p>
+                    </div>
+                `).join('');
+
+                const estados = [
+                    ['PROGRAMADAS', s.citasProgramadas, 'pendiente'],
+                    ['ATENDIDAS', s.citasAtendidas, 'atendida'],
+                    ['CANCELADAS', s.citasCanceladas, 'cancelada']
+                ];
+
+                document.getElementById('citasEstado').innerHTML = estados.map(([k, v]) => `
+                    <div class="dato-perfil">
+                        <span>${k}</span>
+                        <p>${v ?? 0}</p>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+
+</body>
+
+</html>

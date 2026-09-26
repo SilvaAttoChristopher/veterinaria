@@ -37,8 +37,8 @@ public class BoletaController {
     }
 
     @GetMapping("/cliente/{idUsuario}")
-    public List<Boleta> findByClienteIdUsuario(@PathVariable Long idUsuario) {
-        return boletaService.findByClienteIdUsuario(idUsuario);
+    public List<Boleta> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
+        return boletaService.findByUsuarioIdUsuario(idUsuario);
     }
 
     @PostMapping

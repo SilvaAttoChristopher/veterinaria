@@ -22,7 +22,7 @@ public class Horario {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_veterinario", nullable = false)
-    private Veterinario veterinario;
+    private Usuario veterinario;
 
     @Column(nullable = false)
     private Short diaSemana;
@@ -41,8 +41,8 @@ public class Horario {
     public Long getIdHorario() { return idHorario; }
     public void setIdHorario(Long idHorario) { this.idHorario = idHorario; }
 
-    public Veterinario getVeterinario() { return veterinario; }
-    public void setVeterinario(Veterinario veterinario) { this.veterinario = veterinario; }
+    public Usuario getVeterinario() { return veterinario; }
+    public void setVeterinario(Usuario vet) { this.veterinario = vet; }
 
     public Short getDiaSemana() { return diaSemana; }
     public void setDiaSemana(Short diaSemana) { this.diaSemana = diaSemana; }

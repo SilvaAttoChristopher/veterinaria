@@ -31,7 +31,7 @@ public class Cita {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_veterinario", nullable = false)
-    private Veterinario veterinario;
+    private Usuario veterinario;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_servicio", nullable = false)
@@ -59,8 +59,8 @@ public class Cita {
     public Mascota getMascota() { return mascota; }
     public void setMascota(Mascota mascota) { this.mascota = mascota; }
 
-    public Veterinario getVeterinario() { return veterinario; }
-    public void setVeterinario(Veterinario veterinario) { this.veterinario = veterinario; }
+    public Usuario getVeterinario() { return veterinario; }
+    public void setVeterinario(Usuario vet) { this.veterinario = vet; }
 
     public Servicio getServicio() { return servicio; }
     public void setServicio(Servicio servicio) { this.servicio = servicio; }

@@ -16,7 +16,7 @@ public class Mascota {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cliente", nullable = false)
-    private Cliente cliente;
+    private Usuario cliente;
 
     @NotBlank
     @Size(max = 80)
@@ -45,7 +45,7 @@ public class Mascota {
 
     public Mascota() {}
 
-    public Mascota(Cliente cliente, String nombre, String especie) {
+    public Mascota(Usuario cliente, String nombre, String especie) {
         this.cliente = cliente;
         this.nombre = nombre;
         this.especie = especie;
@@ -54,8 +54,8 @@ public class Mascota {
     public Long getIdMascota() { return idMascota; }
     public void setIdMascota(Long idMascota) { this.idMascota = idMascota; }
 
-    public Cliente getCliente() { return cliente; }
-    public void setCliente(Cliente cliente) { this.cliente = cliente; }
+    public Usuario getCliente() { return cliente; }
+    public void setCliente(Usuario cliente) { this.cliente = cliente; }
 
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }

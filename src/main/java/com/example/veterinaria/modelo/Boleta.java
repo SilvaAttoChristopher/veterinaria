@@ -15,7 +15,7 @@ public class Boleta {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cliente", nullable = false)
-    private Cliente cliente;
+    private Usuario cliente;
 
     @Column(nullable = false)
     private LocalDateTime fechaEmision = LocalDateTime.now();
@@ -38,8 +38,8 @@ public class Boleta {
     public Long getIdBoleta() { return idBoleta; }
     public void setIdBoleta(Long idBoleta) { this.idBoleta = idBoleta; }
 
-    public Cliente getCliente() { return cliente; }
-    public void setCliente(Cliente cliente) { this.cliente = cliente; }
+    public Usuario getCliente() { return cliente; }
+    public void setCliente(Usuario cliente) { this.cliente = cliente; }
 
     public LocalDateTime getFechaEmision() { return fechaEmision; }
     public void setFechaEmision(LocalDateTime fechaEmision) { this.fechaEmision = fechaEmision; }

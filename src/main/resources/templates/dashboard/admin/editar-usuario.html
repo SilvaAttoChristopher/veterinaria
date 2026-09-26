@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Editar Usuario | VetWeb Admin')}">
+    <title>Editar Usuario | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/admin/usuarios}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a usuarios
+                </a>
+
+                <h2>Editar Usuario</h2>
+
+                <p>
+                    Cambia el rol, la identidad y el estado de la cuenta. El DNI se conserva
+                    al cambiar de rol; es obligatorio si la cuenta pasa a ser CLIENTE.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formUsuario" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+                        <i class="bi bi-person-gear"></i>
+                        <h3>Rol e Identidad</h3>
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label>USUARIO</label>
+                            <input type="text" id="username" class="input-bloqueado" readonly>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="rol">ROL</label>
+                            <select id="rol" onchange="ajustarCampos()">
+                                <option value="CLIENTE">Cliente</option>
+                                <option value="VETERINARIO">Veterinario</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota" id="wrapDni">
+                            <label for="dni">DNI</label>
+                            <input type="text" id="dni" placeholder="Obligatorio para CLIENTE">
+                        </div>
+
+                        <div class="campo-registro-mascota" id="wrapEspecialidad">
+                            <label for="especialidad">ESPECIALIDAD</label>
+                            <input type="text" id="especialidad"
+                                placeholder="Sólo para VETERINARIO">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="estado">ESTADO</label>
+                            <select id="estado">
+                                <option value="ACTIVO">Activo</option>
+                                <option value="INACTIVO">Inactivo</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/admin/usuarios}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar"
+                            onclick="guardar()">
+                            <i class="bi bi-floppy"></i>
+                            Guardar Cambios
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const USUARIO_ID = [[${idUsuario}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            if (USUARIO_ID === null || USUARIO_ID === undefined) return;
+
+            try {
+                const res = await fetch(`/api/usuarios/${USUARIO_ID}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                const u = await res.json();
+                document.getElementById('username').value = u.username || '';
+                document.getElementById('rol').value = u.rol?.nombre || 'CLIENTE';
+                document.getElementById('dni').value = u.dni || '';
+                document.getElementById('especialidad').value = u.especialidad || '';
+                document.getElementById('estado').value = u.estado || 'ACTIVO';
+                ajustarCampos();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function ajustarCampos() {
+            const rol = document.getElementById('rol').value;
+            document.getElementById('wrapDni').style.display =
+                rol === 'CLIENTE' ? '' : 'none';
+            document.getElementById('wrapEspecialidad').style.display =
+                rol === 'VETERINARIO' ? '' : 'none';
+        }
+
+        async function guardar() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const rol = document.getElementById('rol').value;
+            const dni = document.getElementById('dni').value.trim();
+            const especialidad = document.getElementById('especialidad').value.trim();
+            const estado = document.getElementById('estado').value;
+
+            try {
+                let res = await fetch(`/api/usuarios/${USUARIO_ID}/rol`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rol, dni, especialidad }),
+                    credentials: 'same-origin'
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo cambiar el rol');
+                    btn.disabled = false;
+                    return;
+                }
+
+                res = await fetch(`/api/usuarios/${USUARIO_ID}/estado`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado }),
+                    credentials: 'same-origin'
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Rol actualizado, pero el estado no pudo cambiarse');
+                    window.location.href = '/dashboard/admin/usuarios';
+                    return;
+                }
+
+                window.location.href = '/dashboard/admin/usuarios';
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

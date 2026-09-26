@@ -23,7 +23,7 @@ public class BoletaService {
         return boletaRepository.findById(id);
     }
 
-    public List<Boleta> findByClienteIdUsuario(Long idUsuario) {
+    public List<Boleta> findByUsuarioIdUsuario(Long idUsuario) {
         return boletaRepository.findByClienteIdUsuario(idUsuario);
     }
 

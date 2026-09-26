@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Roles y Permisos | VetWeb Admin')}">
+    <title>Roles y Permisos | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Roles y Permisos</h2>
+                    <p>Permisos asignados a cada rol del sistema.</p>
+                </div>
+            </div>
+
+            <div class="filtros-citas">
+                <div class="busqueda-citas">
+                    <i class="bi bi-shield"></i>
+                    <select id="filtroRol" onchange="cargarPermisos()">
+                        <option value="">Seleccione un rol...</option>
+                    </select>
+                </div>
+            </div>
+
+            <section class="tabla-mascotas" id="tablaPermisos">
+                <p style="padding:24px;text-align:center;">Seleccione un rol para ver sus permisos</p>
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let roles = [];
+        let permisos = [];
+        let asignados = new Set();
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            try {
+                const [r, p] = await Promise.all([
+                    fetch('/api/roles', { credentials: 'same-origin' }),
+                    fetch('/api/permisos', { credentials: 'same-origin' })
+                ]);
+
+                if (r.ok) roles = await r.json();
+                if (p.ok) permisos = await p.json();
+
+                const sel = document.getElementById('filtroRol');
+                sel.innerHTML = '<option value="">Seleccione un rol...</option>' +
+                    roles.map(x => `<option value="${x.idRol}">${x.nombre}</option>`).join('');
+
+                if (roles.length) {
+                    sel.value = roles[0].idRol;
+                    cargarPermisos();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function cargarPermisos() {
+            const idRol = document.getElementById('filtroRol').value;
+            const cont = document.getElementById('tablaPermisos');
+
+            if (!idRol) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">Seleccione un rol</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/permisos/rol/${idRol}`, {
+                    credentials: 'same-origin'
+                });
+                asignados = new Set(res.ok
+                    ? (await res.json()).map(rp => rp.permiso?.idPermiso)
+                    : []);
+
+                renderizar(idRol);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderizar(idRol) {
+            const cont = document.getElementById('tablaPermisos');
+
+            if (permisos.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay permisos definidos</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>PERMISO</span>
+                    <span>DESCRIPCIÓN</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${permisos.map(p => {
+                    const activo = asignados.has(p.idPermiso);
+                    return `
+                        <div class="fila-mascota">
+                            <div class="nombre-mascota-tabla">
+                                <div class="icono-mascota"><i class="bi bi-key-fill"></i></div>
+                                <strong>${escapar(p.nombre)}</strong>
+                            </div>
+                            <p>${escapar(p.descripcion || '—')}</p>
+                            <div>
+                                <span class="estado-tabla ${activo ? 'estable' : 'pendiente'}">
+                                    ${activo ? 'Asignado' : 'No asignado'}
+                                </span>
+                            </div>
+                            <div class="acciones-mascota">
+                                <a href="#" class="${activo ? 'btn-cita-cancelar' : 'btn-tabla-principal'}"
+                                   onclick="togglePermiso(${p.idPermiso}, ${activo}, ${idRol}); return false;">
+                                    ${activo ? 'Quitar' : 'Asignar'}
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+
+        async function togglePermiso(idPermiso, asignado, idRol) {
+            try {
+                const res = asignado
+                    ? await fetch(`/api/permisos/rol/${idRol}/${idPermiso}`, {
+                        method: 'DELETE',
+                        credentials: 'same-origin'
+                    })
+                    : await fetch(`/api/permisos/rol/${idRol}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ permiso: { idPermiso } }),
+                        credentials: 'same-origin'
+                    });
+
+                if (res.ok) {
+                    await cargarPermisos();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo actualizar el permiso');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

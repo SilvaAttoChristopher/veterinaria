@@ -37,8 +37,8 @@ public class HorarioController {
     }
 
     @GetMapping("/veterinario/{idUsuario}")
-    public List<Horario> findByVeterinarioIdUsuario(@PathVariable Long idUsuario) {
-        return horarioService.findByVeterinarioIdUsuario(idUsuario);
+    public List<Horario> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
+        return horarioService.findByUsuarioIdUsuario(idUsuario);
     }
 
     @PostMapping

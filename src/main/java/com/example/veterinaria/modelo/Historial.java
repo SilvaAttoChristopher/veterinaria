@@ -27,7 +27,7 @@ public class Historial {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_veterinario", nullable = false)
-    private Veterinario veterinario;
+    private Usuario veterinario;
 
     @Column(nullable = false)
     private LocalDateTime fechaAtencion = LocalDateTime.now();
@@ -53,8 +53,8 @@ public class Historial {
     public Mascota getMascota() { return mascota; }
     public void setMascota(Mascota mascota) { this.mascota = mascota; }
 
-    public Veterinario getVeterinario() { return veterinario; }
-    public void setVeterinario(Veterinario veterinario) { this.veterinario = veterinario; }
+    public Usuario getVeterinario() { return veterinario; }
+    public void setVeterinario(Usuario vet) { this.veterinario = vet; }
 
     public LocalDateTime getFechaAtencion() { return fechaAtencion; }
     public void setFechaAtencion(LocalDateTime fechaAtencion) { this.fechaAtencion = fechaAtencion; }

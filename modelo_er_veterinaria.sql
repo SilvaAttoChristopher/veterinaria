@@ -1,302 +1,911 @@
 -- ============================================================
--- MODELO ER - SISTEMA DE GESTIÓN VETERINARIA
--- PostgreSQL
+-- MODELO ER DE REFERENCIA — VETERINARIA
+-- ============================================================
+-- Este archivo documenta el esquema. El esquema que se crea realmente
+-- en Docker es src/main/resources/db/init.sql (fuente de verdad).
 --
--- Herencia: USUARIO es tabla padre, CLIENTE y VETERINARIO
--- son hijos con JOINED inheritance.
+-- MODELO DE USUARIOS: tabla única
+-- ---------------------------
+-- No hay herencia JPA ni tablas hijas. `usuario` guarda todos los
+-- tipos de cuenta y el rol se determina por `usuario.id_rol`:
 --
--- 1) USUARIO → CLIENTE (hijo)
--- 2) USUARIO → VETERINARIO (hijo)
--- 3) MASCOTA 1:1 CARTILLA
--- 4) VETERINARIO 1:N HORARIO
--- 5) CARTILLA 1:N VACUNACION y VACUNA 1:N VACUNACION
--- 6) BOLETA 1:N DETALLE_BOLETA y SERVICIO 1:N DETALLE_BOLETA
--- 7) CITA-SERVICIO: SERVICIO 1:N CITA
+--     rol CLIENTE      -> exige dni           (columna nullable)
+--     rol VETERINARIO  -> especialidad        (columna nullable)
+--     rol ADMIN        -> sin campos propios
+--
+-- La unicidad del dni se garantiza con un índice único parcial
+-- (ux_usuario_dni) para permitir varios NULL entre no clientes.
+-- La obligatoriedad del dni para CLIENTE se valida en Java.
+--
+-- REFERENCIAS A USUARIOS
+-- ---------------------
+--   mascota.id_cliente       -> usuario(id_usuario)
+--   boleta.id_cliente        -> usuario(id_usuario)
+--   cita.id_veterinario      -> usuario(id_usuario)
+--   horario.id_veterinario   -> usuario(id_usuario)
+--   historial.id_veterinario -> usuario(id_usuario)
+--   notificacion.id_usuario  -> usuario(id_usuario)
+--
+-- Este diseño sustituye a la herencia JOINED (USUARIO -> CLIENTE /
+-- VETERINARIO), que obligaba a migrar filas entre tablas hijas al
+-- cambiar el rol de un usuario y provocaba WrongClassException en
+-- Hibernate al actualizar desde JSON.
+--
+-- Tablas: rol, permiso, rol_permiso, usuario, mascota, cartilla,
+--         vacuna, vacunacion, horario, historial, servicio, cita,
+--         boleta, detalle_boleta, notificacion
+--
+-- Regenerar tras un cambio de esquema:
+--   docker compose exec -T db pg_dump -U postgres -d veterinaria \
+--     --schema-only --no-owner --no-privileges
 -- ============================================================
 
--- Rol
-CREATE TABLE rol (
-    id_rol       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nombre       VARCHAR(50) NOT NULL UNIQUE
-);
-
--- Permiso
-CREATE TABLE permiso (
-    id_permiso    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nombre        VARCHAR(100) NOT NULL UNIQUE,
-    descripcion   VARCHAR(200)
-);
-
--- Rol-Permiso (N:M)
-CREATE TABLE rol_permiso (
-    id_rol      BIGINT NOT NULL,
-    id_permiso  BIGINT NOT NULL,
-    PRIMARY KEY (id_rol, id_permiso),
-    CONSTRAINT fk_rp_rol
-        FOREIGN KEY (id_rol) REFERENCES rol(id_rol)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_rp_permiso
-        FOREIGN KEY (id_permiso) REFERENCES permiso(id_permiso)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- Usuario (tabla padre - herencia JOINED)
-CREATE TABLE usuario (
-    id_usuario     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    username       VARCHAR(50) NOT NULL UNIQUE,
-    password       VARCHAR(200) NOT NULL,
-    nombres        VARCHAR(80) NOT NULL,
-    apellidos      VARCHAR(100) NOT NULL,
-    telefono       VARCHAR(20),
-    correo         VARCHAR(120),
-    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    estado         VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
-    id_rol         BIGINT NOT NULL,
-    CONSTRAINT fk_usuario_rol
-        FOREIGN KEY (id_rol) REFERENCES rol(id_rol)
-        ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
--- Cliente (hijo de Usuario)
-CREATE TABLE cliente (
-    id_cliente  BIGINT PRIMARY KEY,
-    dni         VARCHAR(20) NOT NULL UNIQUE,
-    CONSTRAINT fk_cliente_usuario
-        FOREIGN KEY (id_cliente) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- Veterinario (hijo de Usuario)
-CREATE TABLE veterinario (
-    id_veterinario  BIGINT PRIMARY KEY,
-    especialidad    VARCHAR(100),
-    CONSTRAINT fk_veterinario_usuario
-        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- Mascota
-CREATE TABLE mascota (
-    id_mascota          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_cliente          BIGINT NOT NULL,
-    nombre              VARCHAR(80) NOT NULL,
-    especie             VARCHAR(40) NOT NULL,
-    raza                VARCHAR(80),
-    sexo                CHAR(1) CHECK (sexo IN ('M', 'F')),
-    fecha_nacimiento    DATE,
-    CONSTRAINT fk_mascota_cliente
-        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
-        ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
-CREATE INDEX idx_mascota_cliente ON mascota(id_cliente);
-
--- Cartilla
-CREATE TABLE cartilla (
-    id_cartilla       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_mascota        BIGINT NOT NULL UNIQUE,
-    fecha_creacion    DATE NOT NULL DEFAULT CURRENT_DATE,
-    observaciones     TEXT,
-    CONSTRAINT fk_cartilla_mascota
-        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- Vacuna
-CREATE TABLE vacuna (
-    id_vacuna       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nombre          VARCHAR(100) NOT NULL UNIQUE,
-    descripcion     TEXT,
-    vigente         BOOLEAN NOT NULL DEFAULT TRUE
-);
-
--- Vacunación
-CREATE TABLE vacunacion (
-    id_vacunacion    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_cartilla      BIGINT NOT NULL,
-    id_vacuna        BIGINT NOT NULL,
-    fecha_aplicacion DATE NOT NULL,
-    proxima_dosis    DATE,
-    observaciones    TEXT,
-    CONSTRAINT fk_vacunacion_cartilla
-        FOREIGN KEY (id_cartilla) REFERENCES cartilla(id_cartilla)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_vacunacion_vacuna
-        FOREIGN KEY (id_vacuna) REFERENCES vacuna(id_vacuna)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_vacunacion_fechas
-        CHECK (proxima_dosis IS NULL OR proxima_dosis >= fecha_aplicacion)
-);
-
-CREATE INDEX idx_vacunacion_cartilla ON vacunacion(id_cartilla);
-CREATE INDEX idx_vacunacion_vacuna ON vacunacion(id_vacuna);
-
--- Horario
-CREATE TABLE horario (
-    id_horario      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_veterinario  BIGINT NOT NULL,
-    dia_semana      SMALLINT NOT NULL,
-    hora_inicio     TIME NOT NULL,
-    hora_fin        TIME NOT NULL,
-    activo          BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT fk_horario_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT chk_horario_dia
-        CHECK (dia_semana BETWEEN 1 AND 7),
-    CONSTRAINT chk_horario_horas
-        CHECK (hora_fin > hora_inicio)
-);
-
-CREATE INDEX idx_horario_veterinario ON horario(id_veterinario);
-
--- Historial
-CREATE TABLE historial (
-    id_historial      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_mascota        BIGINT NOT NULL,
-    id_veterinario    BIGINT NOT NULL,
-    fecha_atencion    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    motivo            VARCHAR(200),
-    diagnostico       TEXT,
-    tratamiento       TEXT,
-    observaciones     TEXT,
-    CONSTRAINT fk_historial_mascota
-        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_historial_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
-        ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
-CREATE INDEX idx_historial_mascota ON historial(id_mascota);
-CREATE INDEX idx_historial_veterinario ON historial(id_veterinario);
-CREATE INDEX idx_historial_fecha ON historial(fecha_atencion);
-
--- Servicio
-CREATE TABLE servicio (
-    id_servicio     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    nombre          VARCHAR(100) NOT NULL UNIQUE,
-    descripcion     TEXT,
-    precio          NUMERIC(10,2) NOT NULL,
-    activo          BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT chk_servicio_precio CHECK (precio >= 0)
-);
-
--- Cita
-CREATE TABLE cita (
-    id_cita          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_mascota       BIGINT NOT NULL,
-    id_veterinario   BIGINT NOT NULL,
-    id_servicio      BIGINT NOT NULL,
-    fecha            DATE NOT NULL,
-    hora             TIME NOT NULL,
-    estado           VARCHAR(20) NOT NULL DEFAULT 'PROGRAMADA',
-    motivo           VARCHAR(200),
-    CONSTRAINT fk_cita_mascota
-        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_cita_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_cita_servicio
-        FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_cita_estado
-        CHECK (estado IN ('PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_ASISTIO')),
-    CONSTRAINT uq_cita_veterinario_fecha_hora
-        UNIQUE (id_veterinario, fecha, hora)
-);
-
-CREATE INDEX idx_cita_mascota ON cita(id_mascota);
-CREATE INDEX idx_cita_veterinario ON cita(id_veterinario);
-CREATE INDEX idx_cita_servicio ON cita(id_servicio);
-CREATE INDEX idx_cita_fecha ON cita(fecha);
-
--- Boleta
-CREATE TABLE boleta (
-    id_boleta        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_cliente       BIGINT NOT NULL,
-    fecha_emision    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    subtotal         NUMERIC(10,2) NOT NULL DEFAULT 0,
-    igv              NUMERIC(10,2) NOT NULL DEFAULT 0,
-    total            NUMERIC(10,2) NOT NULL DEFAULT 0,
-    estado           VARCHAR(20) NOT NULL DEFAULT 'EMITIDA',
-    CONSTRAINT fk_boleta_cliente
-        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_boleta_montos
-        CHECK (subtotal >= 0 AND igv >= 0 AND total >= 0),
-    CONSTRAINT chk_boleta_estado
-        CHECK (estado IN ('EMITIDA', 'ANULADA', 'PAGADA', 'PENDIENTE'))
-);
-
-CREATE INDEX idx_boleta_cliente ON boleta(id_cliente);
-CREATE INDEX idx_boleta_fecha ON boleta(fecha_emision);
-
--- Detalle Boleta
-CREATE TABLE detalle_boleta (
-    id_detalle_boleta BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_boleta         BIGINT NOT NULL,
-    id_servicio       BIGINT NOT NULL,
-    cantidad          INTEGER NOT NULL DEFAULT 1,
-    precio_unitario   NUMERIC(10,2) NOT NULL,
-    subtotal          NUMERIC(10,2) NOT NULL,
-    CONSTRAINT fk_detalle_boleta_boleta
-        FOREIGN KEY (id_boleta) REFERENCES boleta(id_boleta)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_detalle_boleta_servicio
-        FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_detalle_cantidad CHECK (cantidad > 0),
-    CONSTRAINT chk_detalle_precio CHECK (precio_unitario >= 0),
-    CONSTRAINT chk_detalle_subtotal CHECK (subtotal >= 0)
-);
-
-CREATE INDEX idx_detalle_boleta_boleta ON detalle_boleta(id_boleta);
-CREATE INDEX idx_detalle_boleta_servicio ON detalle_boleta(id_servicio);
-
--- Notificación
-CREATE TABLE notificacion (
-    id_notificacion   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_usuario        BIGINT NOT NULL,
-    tipo              VARCHAR(30) NOT NULL,
-    mensaje           TEXT NOT NULL,
-    fecha             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    estado_leida      BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_notificacion_usuario
-        FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- ============================================================
--- NOTAS DE DISEÑO
--- ============================================================
--- 1. USUARIO es la tabla padre de herencia JOINED.
---    CLIENTE y VETERINARIO comparten campos base (nombres,
---    apellidos, telefono, correo, fecha_registro, estado).
 --
--- 2. CLIENTE agrega: dni (UNIQUE).
---    VETERINARIO agrega: especialidad.
+-- PostgreSQL database dump
 --
--- 3. La tabla CARTILLA queda en relación 1:1 con MASCOTA
---    mediante UNIQUE(id_mascota).
+
+
+-- Dumped from database version 16.15
+-- Dumped by pg_dump version 16.15
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
 --
--- 4. HORARIO queda en relación 1:N con VETERINARIO.
+-- Name: boleta; Type: TABLE; Schema: public; Owner: -
 --
--- 5. VACUNACION permite mantener el historial de aplicaciones
---    de vacunas y las fechas de próxima dosis.
+
+CREATE TABLE public.boleta (
+    id_boleta bigint NOT NULL,
+    id_cliente bigint NOT NULL,
+    fecha_emision timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    subtotal numeric(10,2) DEFAULT 0 NOT NULL,
+    igv numeric(10,2) DEFAULT 0 NOT NULL,
+    total numeric(10,2) DEFAULT 0 NOT NULL,
+    estado character varying(20) DEFAULT 'EMITIDA'::character varying NOT NULL,
+    CONSTRAINT chk_boleta_estado CHECK (((estado)::text = ANY ((ARRAY['EMITIDA'::character varying, 'ANULADA'::character varying, 'PAGADA'::character varying, 'PENDIENTE'::character varying])::text[]))),
+    CONSTRAINT chk_boleta_montos CHECK (((subtotal >= (0)::numeric) AND (igv >= (0)::numeric) AND (total >= (0)::numeric)))
+);
+
+
 --
--- 6. HISTORIAL registra la atención de una mascota por un
---    veterinario.
+-- Name: boleta_id_boleta_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
--- 7. CITA-SERVICIO NO se normaliza a una tabla intermedia,
---    por petición expresa, y se conserva como FK directa.
+
+ALTER TABLE public.boleta ALTER COLUMN id_boleta ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.boleta_id_boleta_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
 --
--- 8. BOLETA-SERVICIO sí se normaliza mediante DETALLE_BOLETA
---    para permitir varios servicios en una misma boleta.
+-- Name: cartilla; Type: TABLE; Schema: public; Owner: -
 --
--- 9. ROL determina el tipo de usuario:
---    CLIENTE → tabla cliente
---    VETERINARIO → tabla veterinario
---    ADMIN → solo tabla usuario
--- ============================================================
+
+CREATE TABLE public.cartilla (
+    id_cartilla bigint NOT NULL,
+    id_mascota bigint NOT NULL,
+    fecha_creacion date DEFAULT CURRENT_DATE NOT NULL,
+    observaciones text
+);
+
+
+--
+-- Name: cartilla_id_cartilla_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.cartilla ALTER COLUMN id_cartilla ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.cartilla_id_cartilla_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: cita; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.cita (
+    id_cita bigint NOT NULL,
+    id_mascota bigint NOT NULL,
+    id_veterinario bigint NOT NULL,
+    id_servicio bigint NOT NULL,
+    fecha date NOT NULL,
+    hora time without time zone NOT NULL,
+    estado character varying(20) DEFAULT 'PROGRAMADA'::character varying NOT NULL,
+    motivo character varying(200),
+    CONSTRAINT chk_cita_estado CHECK (((estado)::text = ANY ((ARRAY['PROGRAMADA'::character varying, 'ATENDIDA'::character varying, 'CANCELADA'::character varying, 'NO_ASISTIO'::character varying])::text[])))
+);
+
+
+--
+-- Name: cita_id_cita_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.cita ALTER COLUMN id_cita ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.cita_id_cita_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: detalle_boleta; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.detalle_boleta (
+    id_detalle_boleta bigint NOT NULL,
+    id_boleta bigint NOT NULL,
+    id_servicio bigint NOT NULL,
+    cantidad integer DEFAULT 1 NOT NULL,
+    precio_unitario numeric(10,2) NOT NULL,
+    subtotal numeric(10,2) NOT NULL,
+    CONSTRAINT chk_detalle_cantidad CHECK ((cantidad > 0)),
+    CONSTRAINT chk_detalle_precio CHECK ((precio_unitario >= (0)::numeric)),
+    CONSTRAINT chk_detalle_subtotal CHECK ((subtotal >= (0)::numeric))
+);
+
+
+--
+-- Name: detalle_boleta_id_detalle_boleta_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.detalle_boleta ALTER COLUMN id_detalle_boleta ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.detalle_boleta_id_detalle_boleta_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: historial; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.historial (
+    id_historial bigint NOT NULL,
+    id_mascota bigint NOT NULL,
+    id_veterinario bigint NOT NULL,
+    fecha_atencion timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    motivo character varying(200),
+    diagnostico text,
+    tratamiento text,
+    observaciones text
+);
+
+
+--
+-- Name: historial_id_historial_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.historial ALTER COLUMN id_historial ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.historial_id_historial_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: horario; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.horario (
+    id_horario bigint NOT NULL,
+    id_veterinario bigint NOT NULL,
+    dia_semana smallint NOT NULL,
+    hora_inicio time without time zone NOT NULL,
+    hora_fin time without time zone NOT NULL,
+    activo boolean DEFAULT true NOT NULL,
+    CONSTRAINT chk_horario_dia CHECK (((dia_semana >= 1) AND (dia_semana <= 7))),
+    CONSTRAINT chk_horario_horas CHECK ((hora_fin > hora_inicio))
+);
+
+
+--
+-- Name: horario_id_horario_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.horario ALTER COLUMN id_horario ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.horario_id_horario_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: mascota; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mascota (
+    id_mascota bigint NOT NULL,
+    id_cliente bigint NOT NULL,
+    nombre character varying(80) NOT NULL,
+    especie character varying(40) NOT NULL,
+    raza character varying(80),
+    sexo character(1),
+    fecha_nacimiento date,
+    peso numeric(5,2),
+    observaciones character varying(500),
+    CONSTRAINT mascota_peso_check CHECK (((peso IS NULL) OR (peso > (0)::numeric))),
+    CONSTRAINT mascota_sexo_check CHECK ((sexo = ANY (ARRAY['M'::bpchar, 'F'::bpchar])))
+);
+
+
+--
+-- Name: mascota_id_mascota_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.mascota ALTER COLUMN id_mascota ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.mascota_id_mascota_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: notificacion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notificacion (
+    id_notificacion bigint NOT NULL,
+    id_usuario bigint NOT NULL,
+    tipo character varying(30) NOT NULL,
+    mensaje text NOT NULL,
+    fecha timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    estado_leida boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: notificacion_id_notificacion_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.notificacion ALTER COLUMN id_notificacion ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.notificacion_id_notificacion_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: permiso; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.permiso (
+    id_permiso bigint NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion character varying(200)
+);
+
+
+--
+-- Name: permiso_id_permiso_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.permiso ALTER COLUMN id_permiso ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.permiso_id_permiso_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: rol; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rol (
+    id_rol bigint NOT NULL,
+    nombre character varying(50) NOT NULL
+);
+
+
+--
+-- Name: rol_id_rol_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.rol ALTER COLUMN id_rol ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.rol_id_rol_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: rol_permiso; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.rol_permiso (
+    id_rol bigint NOT NULL,
+    id_permiso bigint NOT NULL
+);
+
+
+--
+-- Name: servicio; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.servicio (
+    id_servicio bigint NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    precio numeric(10,2) NOT NULL,
+    activo boolean DEFAULT true NOT NULL,
+    CONSTRAINT chk_servicio_precio CHECK ((precio >= (0)::numeric))
+);
+
+
+--
+-- Name: servicio_id_servicio_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.servicio ALTER COLUMN id_servicio ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.servicio_id_servicio_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: usuario; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.usuario (
+    id_usuario bigint NOT NULL,
+    username character varying(50) NOT NULL,
+    password character varying(200) NOT NULL,
+    nombres character varying(80) NOT NULL,
+    apellidos character varying(100) NOT NULL,
+    telefono character varying(20),
+    correo character varying(120),
+    direccion character varying(200),
+    dni character varying(20),
+    especialidad character varying(100),
+    fecha_registro timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    estado character varying(20) DEFAULT 'ACTIVO'::character varying NOT NULL,
+    id_rol bigint NOT NULL
+);
+
+
+--
+-- Name: usuario_id_usuario_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.usuario ALTER COLUMN id_usuario ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.usuario_id_usuario_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: vacuna; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vacuna (
+    id_vacuna bigint NOT NULL,
+    nombre character varying(100) NOT NULL,
+    descripcion text,
+    vigente boolean DEFAULT true NOT NULL
+);
+
+
+--
+-- Name: vacuna_id_vacuna_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vacuna ALTER COLUMN id_vacuna ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.vacuna_id_vacuna_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: vacunacion; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vacunacion (
+    id_vacunacion bigint NOT NULL,
+    id_cartilla bigint NOT NULL,
+    id_vacuna bigint NOT NULL,
+    fecha_aplicacion date NOT NULL,
+    proxima_dosis date,
+    observaciones text,
+    CONSTRAINT chk_vacunacion_fechas CHECK (((proxima_dosis IS NULL) OR (proxima_dosis >= fecha_aplicacion)))
+);
+
+
+--
+-- Name: vacunacion_id_vacunacion_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.vacunacion ALTER COLUMN id_vacunacion ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.vacunacion_id_vacunacion_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: boleta boleta_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.boleta
+    ADD CONSTRAINT boleta_pkey PRIMARY KEY (id_boleta);
+
+
+--
+-- Name: cartilla cartilla_id_mascota_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cartilla
+    ADD CONSTRAINT cartilla_id_mascota_key UNIQUE (id_mascota);
+
+
+--
+-- Name: cartilla cartilla_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cartilla
+    ADD CONSTRAINT cartilla_pkey PRIMARY KEY (id_cartilla);
+
+
+--
+-- Name: cita cita_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cita
+    ADD CONSTRAINT cita_pkey PRIMARY KEY (id_cita);
+
+
+--
+-- Name: detalle_boleta detalle_boleta_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.detalle_boleta
+    ADD CONSTRAINT detalle_boleta_pkey PRIMARY KEY (id_detalle_boleta);
+
+
+--
+-- Name: historial historial_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.historial
+    ADD CONSTRAINT historial_pkey PRIMARY KEY (id_historial);
+
+
+--
+-- Name: horario horario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario
+    ADD CONSTRAINT horario_pkey PRIMARY KEY (id_horario);
+
+
+--
+-- Name: mascota mascota_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mascota
+    ADD CONSTRAINT mascota_pkey PRIMARY KEY (id_mascota);
+
+
+--
+-- Name: notificacion notificacion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notificacion
+    ADD CONSTRAINT notificacion_pkey PRIMARY KEY (id_notificacion);
+
+
+--
+-- Name: permiso permiso_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.permiso
+    ADD CONSTRAINT permiso_nombre_key UNIQUE (nombre);
+
+
+--
+-- Name: permiso permiso_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.permiso
+    ADD CONSTRAINT permiso_pkey PRIMARY KEY (id_permiso);
+
+
+--
+-- Name: rol rol_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rol
+    ADD CONSTRAINT rol_nombre_key UNIQUE (nombre);
+
+
+--
+-- Name: rol_permiso rol_permiso_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rol_permiso
+    ADD CONSTRAINT rol_permiso_pkey PRIMARY KEY (id_rol, id_permiso);
+
+
+--
+-- Name: rol rol_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rol
+    ADD CONSTRAINT rol_pkey PRIMARY KEY (id_rol);
+
+
+--
+-- Name: servicio servicio_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.servicio
+    ADD CONSTRAINT servicio_nombre_key UNIQUE (nombre);
+
+
+--
+-- Name: servicio servicio_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.servicio
+    ADD CONSTRAINT servicio_pkey PRIMARY KEY (id_servicio);
+
+
+--
+-- Name: cita uq_cita_veterinario_fecha_hora; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cita
+    ADD CONSTRAINT uq_cita_veterinario_fecha_hora UNIQUE (id_veterinario, fecha, hora);
+
+
+--
+-- Name: usuario usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_pkey PRIMARY KEY (id_usuario);
+
+
+--
+-- Name: usuario usuario_username_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_username_key UNIQUE (username);
+
+
+--
+-- Name: vacuna vacuna_nombre_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vacuna
+    ADD CONSTRAINT vacuna_nombre_key UNIQUE (nombre);
+
+
+--
+-- Name: vacuna vacuna_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vacuna
+    ADD CONSTRAINT vacuna_pkey PRIMARY KEY (id_vacuna);
+
+
+--
+-- Name: vacunacion vacunacion_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vacunacion
+    ADD CONSTRAINT vacunacion_pkey PRIMARY KEY (id_vacunacion);
+
+
+--
+-- Name: idx_boleta_cliente; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_boleta_cliente ON public.boleta USING btree (id_cliente);
+
+
+--
+-- Name: idx_boleta_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_boleta_fecha ON public.boleta USING btree (fecha_emision);
+
+
+--
+-- Name: idx_cita_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cita_fecha ON public.cita USING btree (fecha);
+
+
+--
+-- Name: idx_cita_mascota; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cita_mascota ON public.cita USING btree (id_mascota);
+
+
+--
+-- Name: idx_cita_servicio; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cita_servicio ON public.cita USING btree (id_servicio);
+
+
+--
+-- Name: idx_cita_veterinario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cita_veterinario ON public.cita USING btree (id_veterinario);
+
+
+--
+-- Name: idx_detalle_boleta_boleta; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_detalle_boleta_boleta ON public.detalle_boleta USING btree (id_boleta);
+
+
+--
+-- Name: idx_detalle_boleta_servicio; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_detalle_boleta_servicio ON public.detalle_boleta USING btree (id_servicio);
+
+
+--
+-- Name: idx_historial_fecha; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_historial_fecha ON public.historial USING btree (fecha_atencion);
+
+
+--
+-- Name: idx_historial_mascota; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_historial_mascota ON public.historial USING btree (id_mascota);
+
+
+--
+-- Name: idx_historial_veterinario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_historial_veterinario ON public.historial USING btree (id_veterinario);
+
+
+--
+-- Name: idx_horario_veterinario; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_horario_veterinario ON public.horario USING btree (id_veterinario);
+
+
+--
+-- Name: idx_mascota_cliente; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mascota_cliente ON public.mascota USING btree (id_cliente);
+
+
+--
+-- Name: idx_vacunacion_cartilla; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vacunacion_cartilla ON public.vacunacion USING btree (id_cartilla);
+
+
+--
+-- Name: idx_vacunacion_vacuna; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_vacunacion_vacuna ON public.vacunacion USING btree (id_vacuna);
+
+
+--
+-- Name: ux_usuario_dni; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ux_usuario_dni ON public.usuario USING btree (dni) WHERE (dni IS NOT NULL);
+
+
+--
+-- Name: boleta fk_boleta_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.boleta
+    ADD CONSTRAINT fk_boleta_usuario FOREIGN KEY (id_cliente) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: cartilla fk_cartilla_mascota; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cartilla
+    ADD CONSTRAINT fk_cartilla_mascota FOREIGN KEY (id_mascota) REFERENCES public.mascota(id_mascota) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: cita fk_cita_mascota; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cita
+    ADD CONSTRAINT fk_cita_mascota FOREIGN KEY (id_mascota) REFERENCES public.mascota(id_mascota) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: cita fk_cita_servicio; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cita
+    ADD CONSTRAINT fk_cita_servicio FOREIGN KEY (id_servicio) REFERENCES public.servicio(id_servicio) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: cita fk_cita_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cita
+    ADD CONSTRAINT fk_cita_usuario FOREIGN KEY (id_veterinario) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: detalle_boleta fk_detalle_boleta_boleta; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.detalle_boleta
+    ADD CONSTRAINT fk_detalle_boleta_boleta FOREIGN KEY (id_boleta) REFERENCES public.boleta(id_boleta) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: detalle_boleta fk_detalle_boleta_servicio; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.detalle_boleta
+    ADD CONSTRAINT fk_detalle_boleta_servicio FOREIGN KEY (id_servicio) REFERENCES public.servicio(id_servicio) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: historial fk_historial_mascota; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.historial
+    ADD CONSTRAINT fk_historial_mascota FOREIGN KEY (id_mascota) REFERENCES public.mascota(id_mascota) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: historial fk_historial_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.historial
+    ADD CONSTRAINT fk_historial_usuario FOREIGN KEY (id_veterinario) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: horario fk_horario_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.horario
+    ADD CONSTRAINT fk_horario_usuario FOREIGN KEY (id_veterinario) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: mascota fk_mascota_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mascota
+    ADD CONSTRAINT fk_mascota_usuario FOREIGN KEY (id_cliente) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: notificacion fk_notificacion_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notificacion
+    ADD CONSTRAINT fk_notificacion_usuario FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: rol_permiso fk_rp_permiso; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rol_permiso
+    ADD CONSTRAINT fk_rp_permiso FOREIGN KEY (id_permiso) REFERENCES public.permiso(id_permiso) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: rol_permiso fk_rp_rol; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.rol_permiso
+    ADD CONSTRAINT fk_rp_rol FOREIGN KEY (id_rol) REFERENCES public.rol(id_rol) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: usuario fk_usuario_rol; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT fk_usuario_rol FOREIGN KEY (id_rol) REFERENCES public.rol(id_rol) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: vacunacion fk_vacunacion_cartilla; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vacunacion
+    ADD CONSTRAINT fk_vacunacion_cartilla FOREIGN KEY (id_cartilla) REFERENCES public.cartilla(id_cartilla) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: vacunacion fk_vacunacion_vacuna; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vacunacion
+    ADD CONSTRAINT fk_vacunacion_vacuna FOREIGN KEY (id_vacuna) REFERENCES public.vacuna(id_vacuna) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+

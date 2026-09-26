@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS rol_permiso (
         ON UPDATE CASCADE ON DELETE CASCADE
 );
 
--- Usuario (tabla padre - herencia JOINED)
+-- Usuario (tabla única)
+-- dni aplica a CLIENTE; especialidad aplica a VETERINARIO. Ambos nullable
+-- porque ADMIN no tiene ninguno de los dos.
 CREATE TABLE IF NOT EXISTS usuario (
     id_usuario    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username      VARCHAR(50) NOT NULL UNIQUE,
@@ -39,6 +41,8 @@ CREATE TABLE IF NOT EXISTS usuario (
     telefono      VARCHAR(20),
     correo        VARCHAR(120),
     direccion     VARCHAR(200),
+    dni           VARCHAR(20),
+    especialidad  VARCHAR(100),
     fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado        VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
     id_rol        BIGINT NOT NULL,
@@ -46,24 +50,8 @@ CREATE TABLE IF NOT EXISTS usuario (
         FOREIGN KEY (id_rol) REFERENCES rol(id_rol)
         ON UPDATE CASCADE ON DELETE RESTRICT
 );
-
--- Cliente (hijo de Usuario)
-CREATE TABLE IF NOT EXISTS cliente (
-    id_cliente  BIGINT PRIMARY KEY,
-    dni         VARCHAR(20) NOT NULL UNIQUE,
-    CONSTRAINT fk_cliente_usuario
-        FOREIGN KEY (id_cliente) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
-
--- Veterinario (hijo de Usuario)
-CREATE TABLE IF NOT EXISTS veterinario (
-    id_veterinario  BIGINT PRIMARY KEY,
-    especialidad    VARCHAR(100),
-    CONSTRAINT fk_veterinario_usuario
-        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
-        ON UPDATE CASCADE ON DELETE CASCADE
-);
+-- Unicidad de dni sin impedir varios NULL (ADMINS y veterinarios)
+CREATE UNIQUE INDEX IF NOT EXISTS ux_usuario_dni ON usuario(dni) WHERE dni IS NOT NULL;
 
 -- Mascota
 CREATE TABLE IF NOT EXISTS mascota (
@@ -76,8 +64,8 @@ CREATE TABLE IF NOT EXISTS mascota (
     fecha_nacimiento    DATE,
     peso                NUMERIC(5,2) CHECK (peso IS NULL OR peso > 0),
     observaciones       VARCHAR(500),
-    CONSTRAINT fk_mascota_cliente
-        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+    CONSTRAINT fk_mascota_usuario
+        FOREIGN KEY (id_cliente) REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS idx_mascota_cliente ON mascota(id_cliente);
@@ -129,8 +117,8 @@ CREATE TABLE IF NOT EXISTS horario (
     hora_inicio     TIME NOT NULL,
     hora_fin        TIME NOT NULL,
     activo          BOOLEAN NOT NULL DEFAULT TRUE,
-    CONSTRAINT fk_horario_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+    CONSTRAINT fk_horario_usuario
+        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT chk_horario_dia
         CHECK (dia_semana BETWEEN 1 AND 7),
@@ -152,8 +140,8 @@ CREATE TABLE IF NOT EXISTS historial (
     CONSTRAINT fk_historial_mascota
         FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
         ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_historial_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+    CONSTRAINT fk_historial_usuario
+        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS idx_historial_mascota ON historial(id_mascota);
@@ -183,8 +171,8 @@ CREATE TABLE IF NOT EXISTS cita (
     CONSTRAINT fk_cita_mascota
         FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
         ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_cita_veterinario
-        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+    CONSTRAINT fk_cita_usuario
+        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT fk_cita_servicio
         FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
@@ -208,8 +196,8 @@ CREATE TABLE IF NOT EXISTS boleta (
     igv              NUMERIC(10,2) NOT NULL DEFAULT 0,
     total            NUMERIC(10,2) NOT NULL DEFAULT 0,
     estado           VARCHAR(20) NOT NULL DEFAULT 'EMITIDA',
-    CONSTRAINT fk_boleta_cliente
-        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+    CONSTRAINT fk_boleta_usuario
+        FOREIGN KEY (id_cliente) REFERENCES usuario(id_usuario)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT chk_boleta_montos
         CHECK (subtotal >= 0 AND igv >= 0 AND total >= 0),

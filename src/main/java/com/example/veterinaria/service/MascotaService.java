@@ -23,7 +23,7 @@ public class MascotaService {
         return mascotaRepository.findById(id);
     }
 
-    public List<Mascota> findByClienteIdUsuario(Long idUsuario) {
+    public List<Mascota> findByUsuarioIdUsuario(Long idUsuario) {
         return mascotaRepository.findByClienteIdUsuario(idUsuario);
     }
 

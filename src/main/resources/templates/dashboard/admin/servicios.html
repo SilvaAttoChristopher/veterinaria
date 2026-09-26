@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Servicios | VetWeb Admin')}">
+    <title>Servicios | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Servicios</h2>
+                    <p>Catálogo de servicios y sus precios.</p>
+                </div>
+                <a th:href="@{/dashboard/admin/registrar-servicio}" class="btn-nueva-mascota">
+                    <i class="bi bi-plus-lg"></i>
+                    Nuevo Servicio
+                </a>
+            </div>
+
+            <div class="busqueda-panel">
+                <i class="bi bi-search"></i>
+                <input type="text" id="buscador"
+                    placeholder="Buscar servicio..."
+                    oninput="filtrar()">
+            </div>
+
+            <section class="tabla-mascotas" id="tablaServicios">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let servicios = [];
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            try {
+                const res = await fetch('/api/servicios', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                servicios = await res.json();
+                filtrar();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function filtrar() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            if (!q) {
+                renderizar(servicios);
+                return;
+            }
+            renderizar(servicios.filter(s =>
+                (s.nombre || '').toLowerCase().includes(q) ||
+                (s.descripcion || '').toLowerCase().includes(q)
+            ));
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaServicios');
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay servicios registrados</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>SERVICIO</span>
+                    <span>DESCRIPCIÓN</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(s => `
+                    <div class="fila-mascota">
+                        <div class="nombre-mascota-tabla">
+                            <div class="icono-mascota"><i class="bi bi-tag-fill"></i></div>
+                            <strong>${escapar(s.nombre)}</strong>
+                        </div>
+                        <p>S/. ${escapar(s.precio)} — ${escapar(s.descripcion || 'Sin descripción')}</p>
+                        <div>
+                            <span class="estado-tabla ${s.activo ? 'estable' : 'pendiente'}">
+                                ${s.activo ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </div>
+                        <div class="acciones-mascota">
+                            <a href="/dashboard/admin/editar-servicio/${s.idServicio}"
+                               class="btn-tabla-secundario">Editar</a>
+                            <a href="#" class="btn-tabla-principal"
+                               onclick="toggleActivo(${s.idServicio}, ${s.activo}); return false;">
+                                ${s.activo ? 'Desactivar' : 'Activar'}
+                            </a>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function toggleActivo(id, activo) {
+            const s = servicios.find(x => x.idServicio === id);
+            if (!s) return;
+
+            try {
+                const res = await fetch(`/api/servicios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre: s.nombre,
+                        descripcion: s.descripcion,
+                        precio: s.precio,
+                        activo: !activo
+                    }),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    await cargar();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo actualizar el servicio');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

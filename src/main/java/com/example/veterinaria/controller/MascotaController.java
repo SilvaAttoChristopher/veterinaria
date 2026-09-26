@@ -37,8 +37,8 @@ public class MascotaController {
     }
 
     @GetMapping("/cliente/{idUsuario}")
-    public List<Mascota> findByClienteIdUsuario(@PathVariable Long idUsuario) {
-        return mascotaService.findByClienteIdUsuario(idUsuario);
+    public List<Mascota> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
+        return mascotaService.findByUsuarioIdUsuario(idUsuario);
     }
 
     @PostMapping

@@ -27,7 +27,7 @@ public class HistorialService {
         return historialRepository.findByMascotaIdMascotaOrderByFechaAtencionDesc(idMascota);
     }
 
-    public List<Historial> findByVeterinarioIdUsuario(Long idUsuario) {
+    public List<Historial> findByUsuarioIdUsuario(Long idUsuario) {
         return historialRepository.findByVeterinarioIdUsuario(idUsuario);
     }
 

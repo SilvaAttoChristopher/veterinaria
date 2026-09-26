@@ -1,5 +1,6 @@
 package com.example.veterinaria.controller;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.veterinaria.modelo.Cliente;
 import com.example.veterinaria.modelo.Rol;
 import com.example.veterinaria.modelo.Usuario;
 import com.example.veterinaria.service.RolService;
@@ -50,21 +50,26 @@ public class AuthController {
                     .body(Map.of("mensaje", "El nombre de usuario ya existe"));
             }
 
+            if (dni != null && !dni.isBlank() && !usuarioService.findByDni(dni.trim()).isEmpty()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensaje", "El DNI ya está registrado"));
+            }
+
             Rol rolCliente = rolService.findByNombre("CLIENTE")
                     .orElseThrow(() -> new RuntimeException("Rol CLIENTE no encontrado"));
 
-            Cliente cliente = new Cliente();
+            Usuario cliente = new Usuario();
             cliente.setUsername(username);
             cliente.setPassword(passwordEncoder.encode(password));
             cliente.setNombres(nombres);
             cliente.setApellidos(apellidos);
-            cliente.setDni(dni);
+            cliente.setDni(dni != null && !dni.isBlank() ? dni.trim() : null);
             cliente.setTelefono(telefono);
-            cliente.setCorreo(correo);
+            cliente.setCorreo(correo != null && !correo.isBlank() ? correo : username);
             cliente.setDireccion(direccion);
             cliente.setRol(rolCliente);
 
-            Cliente saved = (Cliente) usuarioService.save(cliente);
+            Usuario saved = usuarioService.save(cliente);
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of("mensaje", "Registro exitoso", "id", saved.getIdUsuario().toString()));
@@ -111,18 +116,25 @@ public class AuthController {
         String username = authentication.getName();
         return usuarioService.findByUsername(username)
                 .map(usuario -> {
-                    return ResponseEntity.ok((Object) Map.of(
-                        "id", usuario.getIdUsuario(),
-                        "username", usuario.getUsername(),
-                        "nombres", usuario.getNombres(),
-                        "apellidos", usuario.getApellidos(),
-                        "correo", usuario.getCorreo() != null ? usuario.getCorreo() : "",
-                        "telefono", usuario.getTelefono() != null ? usuario.getTelefono() : "",
-                        "direccion", usuario.getDireccion() != null ? usuario.getDireccion() : "",
-                        "estado", usuario.getEstado(),
-                        "rol", usuario.getRol().getNombre()
-                    ));
+                    /* Map.of admite como máximo 10 pares, así que se usa LinkedHashMap. */
+                    Map<String, Object> datos = new LinkedHashMap<>();
+                    datos.put("id", usuario.getIdUsuario());
+                    datos.put("username", usuario.getUsername());
+                    datos.put("nombres", usuario.getNombres());
+                    datos.put("apellidos", usuario.getApellidos());
+                    datos.put("correo", valorOrVacio(usuario.getCorreo()));
+                    datos.put("telefono", valorOrVacio(usuario.getTelefono()));
+                    datos.put("direccion", valorOrVacio(usuario.getDireccion()));
+                    datos.put("dni", valorOrVacio(usuario.getDni()));
+                    datos.put("especialidad", valorOrVacio(usuario.getEspecialidad()));
+                    datos.put("estado", usuario.getEstado());
+                    datos.put("rol", usuario.getRol().getNombre());
+                    return ResponseEntity.ok((Object) datos);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private static String valorOrVacio(String valor) {
+        return valor != null ? valor : "";
     }
 }

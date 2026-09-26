@@ -9,7 +9,11 @@
 
     <div class="dashboard">
 
-        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+        <div th:replace="${rolActual == 'ADMIN'}
+            ? ~{fragments/dashboard-layout :: sidebarAdmin}
+            : (${rolActual == 'VETERINARIO'}
+                ? ~{fragments/dashboard-layout :: sidebarVeterinario}
+                : ~{fragments/dashboard-layout :: sidebarCliente})"></div>
 
         <main class="contenido-dashboard">
 
@@ -98,7 +102,7 @@
                             <input type="tel" id="telefono" name="telefono">
                         </div>
 
-                        <div class="campo-editar">
+                        <div class="campo-editar" th:if="${rolActual == 'CLIENTE'}">
                             <label for="dni">DNI</label>
                             <input type="text" id="dni" name="dni" class="input-bloqueado" readonly>
                         </div>
@@ -155,18 +159,10 @@
             document.getElementById('correo').value = u.correo || '';
             document.getElementById('telefono').value = u.telefono || '';
             document.getElementById('direccion').value = u.direccion || '';
-            document.getElementById('dni').value = 'Cargando...';
 
-            try {
-                const res = await fetch(`/api/clientes/${u.id}`, { credentials: 'same-origin' });
-                if (res.ok) {
-                    const cliente = await res.json();
-                    document.getElementById('dni').value = cliente.dni || '-';
-                } else {
-                    document.getElementById('dni').value = '-';
-                }
-            } catch (e) {
-                document.getElementById('dni').value = '-';
+            const campoDni = document.getElementById('dni');
+            if (campoDni) {
+                campoDni.value = u.dni || '-';
             }
         }
 
@@ -211,9 +207,7 @@
             };
 
             try {
-                /* /api/clientes/{id}: el endpoint genérico de usuarios no admite
-                   sublases de Usuario (herencia JOINED). */
-                const res = await fetch(`/api/clientes/${result.data.id}`, {
+                const res = await fetch(`/api/usuarios/${result.data.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),

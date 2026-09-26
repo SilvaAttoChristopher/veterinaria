@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Usuarios | VetWeb Admin')}">
+    <title>Usuarios | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Usuarios</h2>
+                    <p>Gestiona las cuentas, sus roles y su estado.</p>
+                </div>
+            </div>
+
+            <div class="filtros-citas">
+                <div class="busqueda-citas">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscador"
+                        placeholder="Buscar por nombre, correo o usuario..."
+                        oninput="filtrar()">
+                </div>
+                <div class="busqueda-citas">
+                    <i class="bi bi-funnel"></i>
+                    <select id="filtroRol" onchange="filtrar()">
+                        <option value="">Todos los roles</option>
+                        <option value="CLIENTE">Cliente</option>
+                        <option value="VETERINARIO">Veterinario</option>
+                        <option value="ADMIN">Administrador</option>
+                    </select>
+                </div>
+            </div>
+
+            <section class="tabla-mascotas" id="tablaUsuarios">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let usuarios = [];
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            try {
+                const res = await fetch('/api/usuarios', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                usuarios = await res.json();
+                filtrar();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function filtrar() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            const rol = document.getElementById('filtroRol').value;
+
+            let lista = usuarios;
+            if (rol) {
+                lista = lista.filter(u => u.rol?.nombre === rol);
+            }
+            if (q) {
+                lista = lista.filter(u =>
+                    (u.nombres || '').toLowerCase().includes(q) ||
+                    (u.apellidos || '').toLowerCase().includes(q) ||
+                    (u.username || '').toLowerCase().includes(q) ||
+                    (u.dni || '').toLowerCase().includes(q)
+                );
+            }
+
+            renderizar(lista);
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaUsuarios');
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay usuarios que mostrar</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>USUARIO</span>
+                    <span>ROL / IDENTIDAD</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(u => `
+                    <div class="fila-mascota">
+                        <div class="nombre-mascota-tabla">
+                            <div class="icono-mascota"><i class="bi bi-person-fill"></i></div>
+                            <div>
+                                <strong>${escapar(u.nombres)} ${escapar(u.apellidos)}</strong>
+                                <span>${escapar(u.username)}</span>
+                            </div>
+                        </div>
+                        <p>${escapar(u.rol?.nombre || '-')}${u.dni ? ' · DNI ' + escapar(u.dni) : ''}</p>
+                        <div>
+                            <span class="estado-tabla ${u.estado === 'ACTIVO' ? 'estable' : 'urgente'}">
+                                ${escapar(u.estado)}
+                            </span>
+                        </div>
+                        <div class="acciones-mascota">
+                            <a href="/dashboard/admin/editar-usuario/${u.idUsuario}"
+                               class="btn-tabla-principal">
+                                Editar
+                            </a>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+    </script>
+
+</body>
+
+</html>

@@ -10,8 +10,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -21,7 +19,6 @@ import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "usuario")
-@Inheritance(strategy = InheritanceType.JOINED)
 public class Usuario {
 
     @Id
@@ -60,6 +57,16 @@ public class Usuario {
     @Size(max = 200)
     @Column(length = 200)
     private String direccion;
+
+    /* Campos específicos de rol. dni sólo para CLIENTE, especialidad sólo para
+       VETERINARIO; ambos nullable porque ADMIN no tiene ninguno de los dos. */
+    @Size(max = 20)
+    @Column(length = 20)
+    private String dni;
+
+    @Size(max = 100)
+    @Column(length = 100)
+    private String especialidad;
 
     @Column(nullable = false)
     private LocalDateTime fechaRegistro = LocalDateTime.now();
@@ -106,6 +113,12 @@ public class Usuario {
 
     public String getDireccion() { return direccion; }
     public void setDireccion(String direccion) { this.direccion = direccion; }
+
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
+
+    public String getEspecialidad() { return especialidad; }
+    public void setEspecialidad(String especialidad) { this.especialidad = especialidad; }
 
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }

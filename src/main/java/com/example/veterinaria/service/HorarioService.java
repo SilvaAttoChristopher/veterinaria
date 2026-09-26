@@ -23,11 +23,11 @@ public class HorarioService {
         return horarioRepository.findById(id);
     }
 
-    public List<Horario> findByVeterinarioIdUsuario(Long idUsuario) {
+    public List<Horario> findByUsuarioIdUsuario(Long idUsuario) {
         return horarioRepository.findByVeterinarioIdUsuario(idUsuario);
     }
 
-    public List<Horario> findByVeterinarioIdUsuarioAndDiaSemana(Long idUsuario, Short diaSemana) {
+    public List<Horario> findByUsuarioIdUsuarioAndDiaSemana(Long idUsuario, Short diaSemana) {
         return horarioRepository.findByVeterinarioIdUsuarioAndDiaSemana(idUsuario, diaSemana);
     }
 

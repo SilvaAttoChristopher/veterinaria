@@ -585,29 +585,45 @@ USUARIO N ───── 1 ROL
 ROL N ───────── N PERMISO (via ROL_PERMISO)
 ```
 
-### Herencia de usuarios
+### Tipos de usuario (tabla única)
 
-`USUARIO` es la entidad padre. `CLIENTE` y `VETERINARIO` son hijos con `@Inheritance(JOINED)`:
+Ya **no hay herencia JPA**. Existe una sola tabla `usuario`; el tipo se determina por
+`usuario.id_rol` y los campos específicos de cada rol son columnas nullable:
 
-- **Cliente:** hereda campos de Usuario + agrega `dni`.
-- **Veterinario:** hereda campos de Usuario + agrega `especialidad`.
-- **Admin:** solo existe en la tabla `usuario` (sin tabla hija).
+| Rol | Campo propio | Restricción |
+|---|---|---|
+| CLIENTE | `dni` | Obligatorio, validado en Java |
+| VETERINARIO | `especialidad` | Opcional |
+| ADMIN | — | Sin campos propios |
 
-El `ROL` determina el tipo de usuario:
+La unicidad del `dni` se mantiene con un índice único parcial:
 
-| Rol | Tabla adicional |
-|---|---|
-| CLIENTE | cliente |
-| VETERINARIO | veterinario |
-| ADMIN | ninguna |
+```sql
+CREATE UNIQUE INDEX ux_usuario_dni ON usuario(dni) WHERE dni IS NOT NULL;
+```
 
-### Convenciones JPA
+El índice parcial permite varios `NULL` (administradores y veterinarios) sin perder la
+garantía de unicidad entre clientes. La obligatoriedad para el rol `CLIENTE` se valida
+en `UsuarioService.cambiarRol` y en `AuthController.registro`, no con `NOT NULL`,
+porque la columna es compartida por los tres roles.
 
-- `Cliente` usa `@PrimaryKeyJoinColumn(name = "id_cliente")` → FK a `usuario.id_usuario`.
-- `Veterinario` usa `@PrimaryKeyJoinColumn(name = "id_veterinario")` → FK a `usuario.id_usuario`.
-- En repositorios, las rutas depropiedad usan `idUsuario` (no `idCliente`/`idVeterinario`).
+**Por qué se eliminó la herencia `JOINED`:** con `InheritanceType.JOINED` cambiar el rol
+de un usuario obligaba a migrar la fila entre las tablas hijas (`cliente` ↔ `veterinario`),
+con riesgo de perder el `dni` al pasar a `VETERINARIO` y con conflictos de tipos al
+actualizar desde JSON (`WrongClassException` de Hibernate). Con la tabla única el cambio
+de rol es un único `UPDATE usuario SET id_rol = ...` y ningún dato se pierde.
 
-Las contraseñas no deben almacenarse en texto plano.
+Las referencias del resto del modelo apuntan directamente a `usuario(id_usuario)`:
+`mascota.id_cliente`, `boleta.id_cliente`, `cita.id_veterinario`, `horario.id_veterinario`
+y `historial.id_veterinario`.
+
+En los nombres de los métodos de repositorio se conserva el término del dominio
+(`findByClienteIdUsuario`, `findByVeterinarioIdUsuarioAndFecha`) porque deben coincidir
+con el nombre del campo de la entidad (`Mascota.cliente`, `Cita.veterinario`), que
+apunta a un `Usuario`.
+
+Las contraseñas no deben almacenarse en texto plano: se codifican con BCrypt y el
+campo `password` de `Usuario` lleva `@JsonIgnore` para no exponer el hash en la API.
 
 ---
 
@@ -811,27 +827,57 @@ Convenciones generales:
 
 ---
 
-# 12. API REST propuesta
+# 12. API REST implementada
 
-## Usuarios
+> Los permisos por defecto son: las rutas de lectura del catálogo son para cualquier
+> usuario autenticado; `/api/usuarios/**`, `/api/roles/**`, `/api/permisos/**`,
+> `/api/boletas/**` y los `POST`/`PUT`/`DELETE` de servicios y vacunas son sólo `ADMIN`;
+> los `DELETE` de datos de negocio (mascotas, citas, horarios, historiales, cartillas,
+> vacunaciones, notificaciones) también son sólo `ADMIN`.
+
+## Usuarios (todos los roles)
 
 ```http
 GET    /api/usuarios
+GET    /api/usuarios?rol=CLIENTE|VETERINARIO|ADMIN
+GET    /api/usuarios/buscar?criterio=
 GET    /api/usuarios/{id}
 POST   /api/usuarios
-PUT    /api/usuarios/{id}
+PUT    /api/usuarios/{id}              # sólo datos de contacto
+PUT    /api/usuarios/{id}/rol          # body: {rol, dni, especialidad}
+PUT    /api/usuarios/{id}/estado       # body: {estado: ACTIVO|INACTIVO}
 DELETE /api/usuarios/{id}
 ```
 
-## Clientes
+No existen `/api/clientes` ni `/api/veterinarios` como CRUD: ambos roles se gestionan
+desde `/api/usuarios` filtrando por `?rol=`. El único endpoint de veterinarios es un
+catálogo de solo lectura para los selectores de agendar cita:
 
 ```http
-GET    /api/clientes
-GET    /api/clientes/{id}
-POST   /api/clientes
-PUT    /api/clientes/{id}
-DELETE /api/clientes/{id}
-GET    /api/clientes/buscar?criterio=
+GET    /api/veterinarios               # activos: idUsuario, nombres, apellidos, especialidad
+GET    /api/veterinarios/{idUsuario}
+```
+
+## Autenticación
+
+```http
+POST   /api/auth/login
+POST   /api/auth/registro
+GET    /api/auth/me
+PUT    /api/auth/password              # body: {passwordActual, passwordNueva, passwordConfirmacion}
+POST   /api/auth/logout
+```
+
+## Administración
+
+```http
+GET    /api/admin/estadisticas
+GET    /api/admin/permisos
+GET    /api/admin/roles
+GET    /api/permisos
+GET    /api/permisos/rol/{idRol}
+POST   /api/permisos/rol/{idRol}       # body: {permiso:{idPermiso}}
+DELETE /api/permisos/rol/{idRol}/{idPermiso}
 ```
 
 ## Mascotas
@@ -841,8 +887,8 @@ GET    /api/mascotas
 GET    /api/mascotas/{id}
 POST   /api/mascotas
 PUT    /api/mascotas/{id}
-DELETE /api/mascotas/{id}
-GET    /api/clientes/{id}/mascotas
+DELETE /api/mascotas/{id}              # sólo ADMIN
+GET    /api/mascotas/cliente/{idUsuario}
 ```
 
 ## Citas
@@ -850,22 +896,23 @@ GET    /api/clientes/{id}/mascotas
 ```http
 GET    /api/citas
 GET    /api/citas/{id}
-POST   /api/citas
-PUT    /api/citas/{id}
-DELETE /api/citas/{id}
-GET    /api/citas/disponibilidad
+POST   /api/citas                      # 409 si el horario está ocupado
+PUT    /api/citas/{id}                 # requiere el objeto completo
+DELETE /api/citas/{id}                 # sólo ADMIN
+GET    /api/citas/mascota/{idMascota}
+GET    /api/citas/veterinario/{idUsuario}/fecha?fecha=YYYY-MM-DD
+GET    /api/citas/estado/{estado}
 ```
 
-## Veterinarios y horarios
+## Horarios
 
 ```http
-GET    /api/veterinarios
-POST   /api/veterinarios
-PUT    /api/veterinarios/{id}
-GET    /api/veterinarios/{id}/horarios
-POST   /api/veterinarios/{id}/horarios
+GET    /api/horarios
+GET    /api/horarios/{id}
+POST   /api/horarios
 PUT    /api/horarios/{id}
-DELETE /api/horarios/{id}
+DELETE /api/horarios/{id}              # sólo ADMIN
+GET    /api/horarios/veterinario/{idUsuario}
 ```
 
 ## Historial
@@ -908,7 +955,8 @@ GET  /api/clientes/{id}/boletas
 ```http
 GET   /api/notificaciones
 PATCH /api/notificaciones/{id}/leida
-GET   /api/notificaciones/pendientes
+GET   /api/notificaciones/usuario/{idUsuario}
+GET   /api/notificaciones/usuario/{idUsuario}/pendientes
 ```
 
 ---
@@ -948,11 +996,18 @@ Respuestas recomendadas:
 400 BAD_REQUEST
 Datos inválidos.
 
+401 UNAUTHORIZED
+Sin sesión o no autenticado (sólo en /api/**).
+
+403 FORBIDDEN
+Autenticado pero sin permisos para ese rol (sólo en /api/**).
+En las páginas se redirige al inicio del propio rol.
+
 404 NOT_FOUND
 Recurso no encontrado.
 
 409 CONFLICT
-El horario ya está ocupado.
+El horario ya está ocupado, o el dni ya está registrado.
 
 500 INTERNAL_SERVER_ERROR
 Error interno no controlado.

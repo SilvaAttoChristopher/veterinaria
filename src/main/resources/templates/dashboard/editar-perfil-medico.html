@@ -184,16 +184,6 @@
             document.getElementById('direccion').value = u.direccion || '';
             document.getElementById('username').value = u.username || '';
             document.getElementById('especialidad').value = u.especialidad || '';
-
-            try {
-                const res = await fetch(`/api/veterinarios/${u.id}`, { credentials: 'same-origin' });
-                if (res.ok) {
-                    const vet = await res.json();
-                    document.getElementById('especialidad').value = vet.especialidad || '';
-                }
-            } catch (e) {
-                /* especialidad ya taken */
-            }
         }
 
         document.addEventListener('change', function(e) {
@@ -238,7 +228,7 @@
             };
 
             try {
-                const res = await fetch(`/api/veterinarios/${result.data.id}`, {
+                const res = await fetch(`/api/usuarios/${result.data.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),

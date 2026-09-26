@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Boletas | VetWeb Admin')}">
+    <title>Boletas | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Boletas</h2>
+                    <p>Comprobantes emitidos y su estado.</p>
+                </div>
+            </div>
+
+            <div class="busqueda-panel">
+                <i class="bi bi-search"></i>
+                <input type="text" id="buscador"
+                    placeholder="Buscar por cliente o estado..."
+                    oninput="filtrar()">
+            </div>
+
+            <section class="tabla-mascotas" id="tablaBoletas">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let boletas = [];
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            try {
+                const res = await fetch('/api/boletas', { credentials: 'same-origin' });
+                if (!res.ok) return;
+                boletas = await res.json();
+                filtrar();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(v) {
+            if (v === null || v === undefined) return '';
+            return String(v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function filtrar() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            if (!q) {
+                renderizar(boletas);
+                return;
+            }
+            renderizar(boletas.filter(b => {
+                const cliente = [b.cliente?.nombres, b.cliente?.apellidos]
+                    .filter(Boolean).join(' ');
+                return cliente.toLowerCase().includes(q)
+                    || (b.estado || '').toLowerCase().includes(q);
+            }));
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaBoletas');
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay boletas registradas</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>CLIENTE</span>
+                    <span>FECHA</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(b => {
+                    const cliente = [b.cliente?.nombres, b.cliente?.apellidos]
+                        .filter(Boolean).join(' ') || '—';
+                    const clase = b.estado === 'PAGADA' ? 'estable'
+                        : b.estado === 'ANULADA' ? 'urgente' : 'pendiente';
+                    return `
+                        <div class="fila-mascota">
+                            <div class="nombre-mascota-tabla">
+                                <div class="icono-mascota"><i class="bi bi-receipt"></i></div>
+                                <strong>${escapar(cliente)}</strong>
+                            </div>
+                            <p>${escapar((b.fechaEmision || '').slice(0, 10))} · S/. ${escapar(b.total)}</p>
+                            <div>
+                                <span class="estado-tabla ${clase}">${escapar(b.estado)}</span>
+                            </div>
+                            <div class="acciones-mascota">
+                                <a href="/api/boletas/${b.idBoleta}" target="_blank"
+                                   class="btn-tabla-secundario">Ver JSON</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+    </script>
+
+</body>
+
+</html>
