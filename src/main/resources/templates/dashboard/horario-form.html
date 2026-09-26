@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Gestionar Horario | VetWeb')}">
+    <title>Gestionar Horario | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/perfil-medico}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a mi perfil
+                </a>
+
+                <h2 th:text="${idHorario != null} ? 'Editar Horario' : 'Agregar Horario'">Agregar Horario</h2>
+
+                <p>
+                    Define los días y horas en que atiendes consultas. Los clientes sólo podrán
+                    agendar dentro de estos bloques.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formHorario" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-clock-fill"></i>
+
+                        <h3>Bloque de Atención</h3>
+
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="horarioDia">DÍA DE LA SEMANA</label>
+                            <select id="horarioDia" required>
+                                <option value="1">Lunes</option>
+                                <option value="2">Martes</option>
+                                <option value="3">Miércoles</option>
+                                <option value="4">Jueves</option>
+                                <option value="5">Viernes</option>
+                                <option value="6">Sábado</option>
+                                <option value="7">Domingo</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="horarioInicio">HORA DE INICIO</label>
+                            <input type="time" id="horarioInicio" required>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="horarioFin">HORA DE FIN</label>
+                            <input type="time" id="horarioFin" required>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="horarioActivo">ESTADO</label>
+                            <select id="horarioActivo">
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/perfil-medico}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar" onclick="guardarHorario()">
+                            <i class="bi bi-floppy"></i>
+                            <span th:text="${idHorario != null} ? 'Guardar Cambios' : 'Guardar Horario'">Guardar Horario</span>
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const HORARIO_ID = [[${idHorario}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            if (HORARIO_ID === null || HORARIO_ID === undefined) return;
+
+            try {
+                const res = await fetch(`/api/horarios/${HORARIO_ID}`, { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const h = await res.json();
+
+                document.getElementById('horarioDia').value = h.diaSemana;
+                document.getElementById('horarioInicio').value = (h.horaInicio || '').slice(0, 5);
+                document.getElementById('horarioFin').value = (h.horaFin || '').slice(0, 5);
+                document.getElementById('horarioActivo').value = String(!!h.activo);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function guardarHorario() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const result = await Auth.getCurrentUser();
+            if (!result.success) {
+                alert('Sesión expirada');
+                btn.disabled = false;
+                return;
+            }
+
+            const inicio = document.getElementById('horarioInicio').value;
+            const fin = document.getElementById('horarioFin').value;
+
+            if (inicio >= fin) {
+                alert('La hora de fin debe ser posterior a la hora de inicio');
+                btn.disabled = false;
+                return;
+            }
+
+            const payload = {
+                diaSemana: parseInt(document.getElementById('horarioDia').value, 10),
+                horaInicio: inicio,
+                horaFin: fin,
+                activo: document.getElementById('horarioActivo').value === 'true',
+                veterinario: { idUsuario: result.data.id }
+            };
+
+            const esEdicion = HORARIO_ID !== null && HORARIO_ID !== undefined;
+            const url = esEdicion ? `/api/horarios/${HORARIO_ID}` : '/api/horarios';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard/perfil-medico';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al guardar el horario');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

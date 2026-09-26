@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Agendar Cita | VetWeb')}">
+    <title>Agendar Cita | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/citas}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a mis citas
+                </a>
+
+                <h2 th:text="${idCita != null} ? 'Editar Cita' : 'Agendar Nueva Cita'">Agendar Nueva Cita</h2>
+
+                <p>
+                    Selecciona la mascota, el especialista y el horario disponible.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formCita" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-calendar3"></i>
+
+                        <h3>Datos de la Cita</h3>
+
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaMascota">MASCOTA</label>
+                            <select id="citaMascota" required>
+                                <option value="">Seleccione mascota</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaVeterinario">VETERINARIO</label>
+                            <select id="citaVeterinario" required onchange="cargarHorarios()">
+                                <option value="">Seleccione veterinario</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaServicio">SERVICIO</label>
+                            <select id="citaServicio" required>
+                                <option value="">Seleccione servicio</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaFecha">FECHA</label>
+                            <input type="date" id="citaFecha" required onchange="cargarHorarios()">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaHora">HORA</label>
+                            <select id="citaHora" required>
+                                <option value="">Seleccione hora</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="citaEstado">ESTADO</label>
+                            <select id="citaEstado">
+                                <option value="PROGRAMADA">Programada</option>
+                                <option value="CANCELADA">Cancelada</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-chat-left-text"></i>
+
+                        <h3>Motivo de Consulta</h3>
+
+                    </div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="citaMotivo">MOTIVO</label>
+                        <textarea id="citaMotivo"
+                            placeholder="Describa el motivo de la consulta..."></textarea>
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/citas}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar" onclick="guardarCita()">
+                            <i class="bi bi-floppy"></i>
+                            <span th:text="${idCita != null} ? 'Guardar Cambios' : 'Agendar Cita'">Agendar Cita</span>
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const CITA_ID = [[${idCita}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            await Promise.all([cargarMascotas(), cargarVeterinarios(), cargarServicios()]);
+
+            const hoy = new Date();
+            document.getElementById('citaFecha').min = hoy.toISOString().split('T')[0];
+
+            if (CITA_ID !== null && CITA_ID !== undefined) {
+                await cargarCita();
+            }
+        }
+
+        async function cargarMascotas() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            try {
+                const res = await fetch(`/api/mascotas/cliente/${result.data.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                const mascotas = await res.json();
+                const sel = document.getElementById('citaMascota');
+
+                if (mascotas.length === 0) {
+                    sel.innerHTML = '<option value="">Sin mascotas registradas</option>';
+                    sel.disabled = true;
+                    return;
+                }
+
+                sel.innerHTML = '<option value="">Seleccione mascota</option>' +
+                    mascotas.map(m => `<option value="${m.idMascota}">${m.nombre}</option>`).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarVeterinarios() {
+            try {
+                const res = await fetch('/api/veterinarios', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const vets = await res.json();
+                const sel = document.getElementById('citaVeterinario');
+                sel.innerHTML = '<option value="">Seleccione veterinario</option>' +
+                    vets.map(v => `<option value="${v.idUsuario}">${v.nombres} ${v.apellidos}</option>`).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarServicios() {
+            try {
+                const res = await fetch('/api/servicios', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const servicios = await res.json();
+                const sel = document.getElementById('citaServicio');
+                sel.innerHTML = '<option value="">Seleccione servicio</option>' +
+                    servicios.map(s => `<option value="${s.idServicio}">${s.nombre} - S/. ${s.precio}</option>`).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarCita() {
+            try {
+                const res = await fetch(`/api/citas/${CITA_ID}`, { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const c = await res.json();
+
+                document.getElementById('citaMascota').value = c.mascota?.idMascota || '';
+                document.getElementById('citaVeterinario').value = c.veterinario?.idUsuario || '';
+                document.getElementById('citaServicio').value = c.servicio?.idServicio || '';
+                document.getElementById('citaFecha').value = c.fecha || '';
+                document.getElementById('citaEstado').value = c.estado || 'PROGRAMADA';
+                document.getElementById('citaMotivo').value = c.motivo || '';
+
+                await cargarHorarios();
+                if (c.hora) {
+                    document.getElementById('citaHora').value = c.hora;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarHorarios() {
+            const vetId = document.getElementById('citaVeterinario').value;
+            const fecha = document.getElementById('citaFecha').value;
+            const selHora = document.getElementById('citaHora');
+
+            selHora.innerHTML = '<option value="">Seleccione hora</option>';
+
+            if (!vetId || !fecha) return;
+
+            selHora.innerHTML = '<option value="">Cargando horarios...</option>';
+
+            try {
+                const res = await fetch(`/api/horarios/veterinario/${vetId}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) throw new Error('sin horarios');
+
+                const horarios = await res.json();
+
+                /* diaSemana is stored ISO 1-7 (Lunes=1 .. Domingo=7).
+                   JS getDay() returns 0-6, so map Sunday 0 -> 7. */
+                const jsDay = new Date(`${fecha}T00:00:00`).getDay();
+                const diaSemana = jsDay === 0 ? 7 : jsDay;
+
+                const horariosDia = (horarios || []).filter(h => h.diaSemana === diaSemana && h.activo);
+
+                if (horariosDia.length === 0) {
+                    selHora.innerHTML = '<option value="" disabled>No atiende este día</option>';
+                    return;
+                }
+
+                const opciones = [];
+                for (const h of horariosDia) {
+                    let [hh, mm] = h.horaInicio.split(':').map(Number);
+                    const [fh, fm] = h.horaFin.split(':').map(Number);
+
+                    while (hh < fh || (hh === fh && mm < fm)) {
+                        opciones.push(
+                            `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+                        );
+                        mm += 30;
+                        if (mm >= 60) {
+                            mm = 0;
+                            hh += 1;
+                        }
+                    }
+                }
+
+                selHora.innerHTML = '<option value="">Seleccione hora</option>' +
+                    opciones.map(o => `<option value="${o}">${o}</option>`).join('');
+            } catch (e) {
+                selHora.innerHTML = '<option value="" disabled>Error al cargar horarios</option>';
+            }
+        }
+
+        async function guardarCita() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const payload = {
+                mascota: { idMascota: parseInt(document.getElementById('citaMascota').value, 10) },
+                veterinario: { idUsuario: parseInt(document.getElementById('citaVeterinario').value, 10) },
+                servicio: { idServicio: parseInt(document.getElementById('citaServicio').value, 10) },
+                fecha: document.getElementById('citaFecha').value,
+                hora: document.getElementById('citaHora').value,
+                motivo: document.getElementById('citaMotivo').value.trim(),
+                estado: document.getElementById('citaEstado').value
+            };
+
+            const esEdicion = CITA_ID !== null && CITA_ID !== undefined;
+            const url = esEdicion ? `/api/citas/${CITA_ID}` : '/api/citas';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard/citas';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al guardar la cita');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

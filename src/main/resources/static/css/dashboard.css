@@ -1,0 +1,1962 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Manrope', sans-serif;
+    background-color: #f5f7fa;
+    color: #222;
+}
+
+
+.dashboard {
+    display: flex;
+
+    min-height: 100vh;
+}
+
+
+
+
+.sidebar {
+    width: 230px;
+    min-height: 100vh;
+    background-color: #f4f6f8;
+    border-right: 1px solid #d8dde5;
+    padding: 30px 10px 25px;
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* Logo */
+
+.logo-dashboard {
+    color: #080878;
+
+    font-size: 26px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-left: 14px;
+    margin-bottom: 30px;
+}
+
+
+/* Imagen y nombre de usuario css */
+
+.usuario-sidebar {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 14px;
+
+    margin-bottom: 30px;
+}
+
+.usuario-sidebar img {
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    border: 3px solid #d9dfe6;
+}
+
+.usuario-sidebar strong {
+    display: block;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.usuario-sidebar span {
+    display: block;
+
+    font-size: 9px;
+
+    color: #6b7280;
+}
+
+
+/*Menu*/
+
+.menu-dashboard {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.menu-dashboard a {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 11px 14px;
+
+    text-decoration: none;
+
+    color: #4b4f5c;
+
+    font-size: 13px;
+
+    border-radius: 7px;
+}
+
+.menu-dashboard a i {
+    font-size: 18px;
+}
+
+.menu-dashboard a:hover {
+    background-color: #e8ebf0;
+}
+
+.menu-dashboard .activo {
+    background-color: #08006b;
+
+    color: white;
+}
+
+
+/* El footer de la izquierda */
+
+.sidebar-footer {
+    margin-top: auto;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #d8dde5;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+.sidebar-footer a {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 11px 14px;
+
+    text-decoration: none;
+
+    color: #4b4f5c;
+
+    font-size: 13px;
+
+    border-radius: 7px;
+}
+
+.sidebar-footer a i {
+    font-size: 22px;
+}
+
+.sidebar-footer a:hover {
+    background-color: #e8ebf0;
+}
+
+.sidebar-footer .cerrar-sesion {
+    color: #d62424;
+}
+
+
+
+
+.contenido-dashboard {
+    flex: 1;
+
+    padding: 8px 35px 40px;
+}
+
+.titulo-dashboard {
+    color: #080878;
+
+    font-size: 25px;
+    font-weight: 700;
+    margin-top: 40px;
+    margin-bottom: 28px;
+}
+
+
+
+.perfil-card {
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    background-color: white;
+
+    border: 2px solid #e3e6ea;
+
+    border-radius: 11px;
+
+    overflow: hidden;
+
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03);
+}
+
+
+/* ==================================================
+   HEADER DEL PERFIL
+   ================================================== */
+
+.perfil-header {
+    min-height: 125px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 25px 28px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.perfil-usuario {
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+}
+
+.perfil-usuario img {
+    width: 70px;
+    height: 70px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    border: 6px solid #edf0f3;
+}
+
+.perfil-usuario h3 {
+    font-size: 19px;
+    font-weight: 600;
+
+    margin-bottom: 4px;
+}
+
+.perfil-usuario p {
+    color: #555968;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* ==================================================
+   BOTÓN EDITAR
+   ================================================== */
+
+.btn-editar {
+    padding: 12px 20px;
+
+    border: none;
+    border-radius: 7px;
+
+    background-color: #08006b;
+    color: white;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+.btn-editar i {
+    margin-right: 7px;
+}
+
+.btn-editar:hover {
+    background-color: #05004d;
+}
+
+
+/* ==================================================
+   CONTENIDO DEL PERFIL
+   ================================================== */
+
+.perfil-contenido {
+    padding: 28px;
+}
+
+.perfil-contenido h3 {
+    font-size: 18px;
+    font-weight: 600;
+
+    margin-bottom: 24px;
+}
+
+
+/* ==================================================
+   GRID DE DATOS
+   ================================================== */
+
+.datos-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 23px 28px;
+}
+
+.dato-perfil {
+    padding-bottom: 8px;
+
+    border-bottom: 1px solid #d9dde3;
+}
+
+.dato-perfil span {
+    display: block;
+
+    color: #555968;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    margin-bottom: 8px;
+}
+
+.dato-perfil p {
+    font-size: 14px;
+
+    margin: 0;
+}
+
+
+/* Ocupa todo el ancho */
+
+.dato-completo {
+    grid-column: 1 / -1;
+}
+
+
+/* Información clínica */
+
+.titulo-clinica {
+    margin-top: 38px;
+}
+
+.datos-clinica {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+
+/* ==================================================
+   RESPONSIVE CELULAR
+   ================================================== */
+
+@media (max-width: 768px) {
+
+    .dashboard {
+        flex-direction: column;
+    }
+
+
+    /* Sidebar arriba */
+
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+
+        padding: 18px;
+    }
+
+    .logo-dashboard {
+        margin-left: 0;
+        margin-bottom: 18px;
+    }
+
+
+    /* Ocultamos datos del usuario del sidebar */
+
+    .usuario-sidebar {
+        display: none;
+    }
+
+
+    /* Menú horizontal */
+
+    .menu-dashboard {
+        flex-direction: row;
+
+        overflow-x: auto;
+
+        gap: 8px;
+    }
+
+    .menu-dashboard a {
+        white-space: nowrap;
+    }
+
+
+    /* Footer sidebar */
+
+    .sidebar-footer {
+        display: none;
+    }
+
+
+    /* Contenido */
+
+    .contenido-dashboard {
+        padding: 25px 18px;
+    }
+
+    .titulo-dashboard {
+        font-size: 22px;
+    }
+
+
+    /* Perfil header */
+
+    .perfil-header {
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 20px;
+    }
+
+    .btn-editar {
+        width: 100%;
+    }
+
+
+    /* Datos */
+
+    .datos-grid,
+    .datos-clinica {
+        grid-template-columns: 1fr;
+    }
+
+    .dato-completo {
+        grid-column: auto;
+    }
+
+}
+
+/* ==================================================
+   PANEL DE MASCOTAS
+   ================================================== */
+
+.encabezado-mascotas {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 25px;
+
+    padding-bottom: 15px;
+    padding-top: 40px;
+    border-bottom: 1px solid #e5e7eb;
+
+    margin-bottom: 22px;
+}
+
+.encabezado-mascotas h2 {
+    color: #080878;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    margin-bottom: 5px;
+}
+
+.encabezado-mascotas p {
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+
+/* ================= BUSCADOR ================= */
+
+.buscador-mascotas {
+    display: flex;
+    align-items: center;
+
+    min-width: 320px;
+
+    position: relative;
+}
+
+.buscador-mascotas>i {
+    position: absolute;
+
+    left: 12px;
+
+    color: #7b8190;
+
+    font-size: 14px;
+}
+
+.buscador-mascotas input {
+    width: 350px;
+    height: 38px;
+
+    padding: 0 40px;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+
+    border: 1px solid #aeb4c0;
+
+    outline: none;
+}
+
+.buscador-mascotas input:focus {
+    border-color: #080878;
+}
+
+.buscador-mascotas button {
+    width: 40px;
+    height: 38px;
+
+    margin-left: 10px;
+
+    background: transparent;
+
+    border: none;
+
+    color: #525866;
+
+    cursor: pointer;
+
+    font-size: 16px;
+}
+
+
+/* ================= LISTA ================= */
+
+.lista-mascotas {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 18px;
+}
+
+
+/* ================= TARJETA ================= */
+
+.tarjeta-mascota {
+    background-color: #ffffff;
+
+    border-radius: 8px;
+
+    overflow: hidden;
+}
+
+
+/* Cabecera */
+
+.mascota-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    gap: 10px;
+
+    padding: 14px 12px;
+
+    background-color: #f8f9fb;
+
+    border-bottom: 1px solid #dfe3e8;
+}
+
+.mascota-encabezado h3 {
+    color: #080878;
+
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.mascota-encabezado div>span {
+    color: #444a58;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+/* ================= ESTADOS ================= */
+
+.estado {
+    padding: 4px 8px;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.observacion {
+    background-color: #eef4c8;
+    color: #4b6500;
+}
+
+.alta {
+    background-color: #c8f5d1;
+    color: #23833a;
+}
+
+.rutina {
+    background-color: #ccf3d0;
+    color: #258539;
+}
+
+
+/* ================= DATOS ================= */
+
+.mascota-dato {
+    display: flex;
+
+    gap: 10px;
+
+    padding: 12px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.mascota-dato>i {
+    color: #73798a;
+
+    font-size: 25px;
+
+    margin-top: 2px;
+}
+
+.mascota-dato strong {
+    display: block;
+
+    color: #555968;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    margin-bottom: 5px;
+}
+
+.mascota-dato p {
+    color: #343841;
+
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* ================= VER DETALLES ================= */
+
+.btn-detalles {
+    display: block;
+
+    margin: 12px;
+
+    padding: 8px;
+
+    text-align: center;
+
+    color: #0079b2;
+
+    text-decoration: none;
+
+    font-size: 11px;
+
+    border: 1px solid #0088c9;
+}
+
+.btn-detalles:hover {
+    background-color: #0088c9;
+
+    color: white;
+}
+
+
+/* ================= REGISTRAR ================= */
+
+.btn-registrar-mascota {
+    display: block;
+
+    margin-top: 28px;
+
+    padding: 10px;
+
+    text-align: center;
+
+    background-color: #1700b8;
+
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    border-radius: 6px;
+}
+
+.btn-registrar-mascota:hover {
+    background-color: #0d007a;
+}
+
+
+/* ==================================================
+   RESPONSIVE CELULAR
+   ================================================== */
+
+@media (max-width: 768px) {
+
+    .encabezado-mascotas {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+    .buscador-mascotas {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .lista-mascotas {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* ==================================================
+   CONFIGURACIÓN DE PERFIL
+   ================================================== */
+
+.titulo-configuracion {
+    margin-bottom: 30px;
+    margin-top: 40px;
+}
+
+.titulo-configuracion h2 {
+    color: #080878;
+
+    font-size: 25px;
+    font-weight: 700;
+
+    margin-bottom: 5px;
+}
+
+.titulo-configuracion p {
+    color: #6b7280;
+
+    font-size: 12px;
+}
+
+
+/* ==================================================
+   TARJETA
+   ================================================== */
+
+.editar-perfil-card {
+    width: 100%;
+    max-width: 100%;
+
+    padding: 28px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e1e5ea;
+    border-radius: 7px;
+}
+
+
+/* ==================================================
+   FOTO DE PERFIL
+   ================================================== */
+
+.editar-foto {
+    display: flex;
+    align-items: center;
+
+    gap: 20px;
+}
+
+.foto-perfil-editar {
+    position: relative;
+}
+
+.foto-perfil-editar img {
+    width: 75px;
+    height: 75px;
+
+    object-fit: cover;
+
+    border-radius: 50%;
+
+    border: 4px solid #edf0f3;
+}
+
+
+/* Icono pequeño sobre la foto */
+
+.icono-editar-foto {
+    width: 22px;
+    height: 22px;
+
+    position: absolute;
+
+    right: -2px;
+    bottom: 3px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: #0082b8;
+
+    color: white;
+
+    border-radius: 50%;
+
+    font-size: 10px;
+}
+
+
+/* Información de la foto */
+
+.foto-informacion {
+    display: flex;
+    flex-direction: column;
+}
+
+.foto-informacion strong {
+    color: #262a33;
+
+    font-size: 20px;
+
+    margin-bottom: 3px;
+}
+
+.foto-informacion>span {
+    color: #5e6470;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    margin-bottom: 9px;
+}
+
+
+/* ==================================================
+   BOTONES DE FOTO
+   ================================================== */
+
+.botones-foto {
+    display: flex;
+
+    gap: 10px;
+}
+
+.btn-subir,
+.btn-eliminar {
+    height: 35px;
+
+    padding: 0 16px;
+
+    font-family: 'Manrope', sans-serif;
+
+    font-size: 11px;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+}
+
+.btn-subir {
+    background-color: #0800a8;
+
+    color: white;
+
+    border: 1px solid #0800a8;
+}
+
+.btn-eliminar {
+    background-color: white;
+
+    color: #0076ab;
+
+    border: 1px solid #0085c7;
+}
+
+
+/* ==================================================
+   SEPARADOR
+   ================================================== */
+
+.separador {
+    width: 100%;
+    height: 1px;
+
+    background-color: #e5e7eb;
+
+    margin: 20px 0;
+}
+
+
+/* ==================================================
+   FORMULARIO PERSONAL - 3 COLUMNAS
+   ================================================== */
+
+.formulario-editar-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 20px;
+}
+
+
+/* ==================================================
+   CAMPOS
+   ================================================== */
+
+.campo-editar {
+    display: flex;
+    flex-direction: column;
+}
+
+.campo-editar label {
+    color: #343842;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    margin-bottom: 7px;
+}
+
+.campo-editar input,
+.campo-editar select {
+    width: 100%;
+    height: 43px;
+
+    padding: 0 12px;
+
+    border: 1px solid #dce1e7;
+
+    background-color: white;
+
+    color: #363a43;
+
+    font-family: 'Manrope', sans-serif;
+
+    font-size: 11px;
+
+    outline: none;
+}
+
+.campo-editar input:focus,
+.campo-editar select:focus {
+    border-color: #0800a8;
+}
+
+
+.campo-editar-completo {
+    grid-column: 1 / -1;
+}
+
+
+/* ==================================================
+   INFORMACIÓN CLÍNICA
+   ================================================== */
+
+.titulo-informacion-clinica {
+    color: #262a33;
+
+    font-size: 17px;
+    font-weight: 600;
+
+    margin-bottom: 20px;
+}
+
+
+/* 3 columnas */
+
+.formulario-clinica-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 20px;
+}
+
+
+
+.direccion-clinica {
+    grid-column: 1 / -1;
+}
+
+
+/* ==================================================
+   BOTONES INFERIORES
+   ================================================== */
+
+.acciones-editar {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 12px;
+}
+
+.btn-cancelar,
+.btn-guardar {
+    height: 42px;
+
+    padding: 0 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 5px;
+
+    font-family: 'Manrope', sans-serif;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+}
+
+.btn-cancelar {
+    background-color: white;
+
+    color: #0078b5;
+
+    border: 1px solid #0085c7;
+}
+
+.btn-guardar {
+    background-color: #24bd39;
+
+    color: white;
+
+    border: 1px solid #24bd39;
+}
+
+.btn-cancelar:hover {
+    background-color: #f1f9fd;
+}
+
+.btn-guardar:hover {
+    background-color: #1da831;
+}
+
+
+/* ==================================================
+   RESPONSIVE CELULAR
+   ================================================== */
+
+@media (max-width: 768px) {
+
+    .editar-perfil-card {
+        padding: 20px;
+    }
+
+
+    .formulario-editar-grid,
+    .formulario-clinica-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+
+    .campo-editar-completo,
+    .direccion-clinica {
+        grid-column: auto;
+    }
+
+
+    /* Foto */
+
+    .editar-foto {
+        align-items: flex-start;
+    }
+
+
+    /* Botones inferiores */
+
+    .acciones-editar {
+        flex-direction: column-reverse;
+    }
+
+    .btn-cancelar,
+    .btn-guardar {
+        width: 100%;
+    }
+
+}
+
+.input-bloqueado {
+    background-color: #f1f3f5;
+    color: #5b616b;
+    cursor: not-allowed;
+}
+/* mascotas cliente */
+
+.cabecera-busqueda-mascotas {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+
+    margin-top: 35px;
+    margin-bottom: 22px;
+}
+
+.cabecera-busqueda-mascotas h2 {
+    color: #08006b;
+
+    font-size: 27px;
+    font-weight: 800;
+
+    margin-bottom: 4px;
+}
+
+.cabecera-busqueda-mascotas p {
+    color: #686d78;
+
+    font-size: 12px;
+}
+
+.btn-nueva-mascota {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 10px 16px;
+
+    border-radius: 6px;
+
+    background-color: #08006b;
+    color: white;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.btn-nueva-mascota:hover {
+    color: white;
+    background-color: #05004d;
+}
+
+.busqueda-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    max-width: 420px;
+
+    padding: 9px 13px;
+
+    margin-bottom: 20px;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 6px;
+}
+
+.busqueda-panel i {
+    color: #737985;
+}
+
+.busqueda-panel input {
+    width: 100%;
+
+    border: none;
+    outline: none;
+
+    color: #333;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+}
+
+.tabla-mascotas {
+    overflow: hidden;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 7px;
+}
+
+.tabla-mascotas-header,
+.fila-mascota {
+    display: grid;
+
+    grid-template-columns: 1.4fr 1.6fr 0.8fr 1fr;
+
+    align-items: center;
+
+    padding: 13px 20px;
+}
+
+.tabla-mascotas-header {
+    background-color: #f7f8fa;
+
+    border-bottom: 1px solid #e4e7eb;
+
+    color: #555b66;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.fila-mascota {
+    min-height: 64px;
+
+    border-bottom: 1px solid #eceef1;
+
+    font-size: 11px;
+}
+
+.fila-mascota:last-child {
+    border-bottom: none;
+}
+
+.fila-mascota p {
+    margin: 0;
+
+    color: #5d626d;
+}
+
+.nombre-mascota-tabla {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    color: #08006b;
+}
+
+.nombre-mascota-tabla strong {
+    font-size: 14px;
+}
+
+.icono-mascota {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+
+    background-color: #d9efff;
+    color: #00486f;
+
+    font-size: 15px;
+}
+
+.estado-tabla {
+    display: inline-block;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.estado-tabla.estable {
+    background-color: #dff5df;
+    color: #27762f;
+}
+
+.estado-tabla.pendiente {
+    background-color: #fff0cf;
+    color: #7a5c16;
+}
+
+.estado-tabla.urgente {
+    background-color: #ffe0e0;
+    color: #a32626;
+}
+
+.acciones-mascota {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-tabla-secundario,
+.btn-tabla-principal {
+    padding: 7px 13px;
+
+    border-radius: 6px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.btn-tabla-secundario {
+    border: 1px solid #0789ce;
+
+    background-color: white;
+    color: #0071ad;
+}
+
+.btn-tabla-principal {
+    border: 1px solid #08006b;
+
+    background-color: #08006b;
+    color: white;
+}
+
+.btn-tabla-secundario:hover {
+    background-color: #f1faff;
+}
+
+.btn-tabla-principal:hover {
+    background-color: #05004d;
+    color: white;
+}
+
+
+/* registrar mascota medico */
+
+.cabecera-registro-mascota {
+    margin-top: 25px;
+    margin-bottom: 22px;
+}
+
+.volver-directorio {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    margin-bottom: 7px;
+
+    color: #515662;
+
+    font-size: 9px;
+    font-weight: 600;
+
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.volver-directorio:hover {
+    color: #08006b;
+}
+
+.cabecera-registro-mascota h2 {
+    color: #08006b;
+
+    font-size: 27px;
+    font-weight: 800;
+
+    margin-bottom: 5px;
+}
+
+.cabecera-registro-mascota p {
+    color: #656b76;
+
+    font-size: 11px;
+}
+
+.registro-mascota-card {
+    padding: 0 20px 20px;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+}
+
+.titulo-formulario-mascota {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    margin: 0 -20px 20px;
+    padding: 14px 20px;
+
+    background-color: #f4f5f7;
+}
+
+.titulo-formulario-mascota i {
+    color: #08006b;
+
+    font-size: 15px;
+}
+
+.titulo-formulario-mascota h3 {
+    margin: 0;
+
+    color: #242935;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.formulario-mascota-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    column-gap: 18px;
+    row-gap: 15px;
+}
+
+.campo-registro-mascota {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.campo-registro-mascota label {
+    color: #444a55;
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.campo-registro-mascota input,
+.campo-registro-mascota select,
+.campo-registro-mascota textarea {
+    width: 100%;
+
+    padding: 10px;
+
+    border: 1px solid #d7dce3;
+    border-radius: 5px;
+
+    background-color: white;
+    color: #444a55;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+
+    outline: none;
+}
+
+.campo-registro-mascota input,
+.campo-registro-mascota select {
+    height: 39px;
+}
+
+.campo-registro-mascota input:focus,
+.campo-registro-mascota select:focus,
+.campo-registro-mascota textarea:focus {
+    border-color: #08006b;
+}
+
+.campo-edad {
+    display: grid;
+
+    grid-template-columns: 1fr 90px;
+
+    gap: 8px;
+}
+
+.campo-observaciones textarea {
+    min-height: 100px;
+
+    resize: vertical;
+}
+
+.registro-mascota-card .separador {
+    margin: 22px 0;
+}
+
+.acciones-registro-mascota {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+
+    margin-top: 22px;
+}
+
+.btn-cancelar-registro,
+.btn-guardar-registro {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+
+    min-height: 38px;
+
+    padding: 8px 17px;
+
+    border-radius: 5px;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-cancelar-registro {
+    border: 1px solid #0087cd;
+
+    background-color: white;
+    color: #0072af;
+}
+
+.btn-guardar-registro {
+    border: none;
+
+    background-color: #2fcb38;
+    color: white;
+}
+
+
+/* responsive mascotas */
+
+@media (max-width: 900px) {
+
+    .cabecera-busqueda-mascotas {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .tabla-mascotas {
+        overflow-x: auto;
+    }
+
+    .tabla-mascotas-header,
+    .fila-mascota {
+        min-width: 700px;
+    }
+
+    .formulario-mascota-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .cabecera-busqueda-mascotas h2,
+    .cabecera-registro-mascota h2 {
+        font-size: 22px;
+    }
+
+    .busqueda-panel {
+        max-width: 100%;
+    }
+
+    .campo-edad {
+        grid-template-columns: 1fr;
+    }
+
+    .acciones-registro-mascota {
+        flex-direction: column;
+    }
+
+    .btn-cancelar-registro,
+    .btn-guardar-registro {
+        width: 100%;
+    }
+
+}
+/* citas cliente */
+
+.cabecera-citas {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+
+    margin-top: 35px;
+    margin-bottom: 22px;
+}
+
+.cabecera-citas h2 {
+    color: #08006b;
+
+    font-size: 27px;
+    font-weight: 800;
+
+    margin-bottom: 4px;
+}
+
+.cabecera-citas p {
+    color: #686d78;
+
+    font-size: 12px;
+}
+
+.btn-nueva-cita {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 10px 16px;
+
+    border-radius: 6px;
+
+    background-color: #08006b;
+    color: white;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.btn-nueva-cita:hover {
+    background-color: #05004d;
+    color: white;
+}
+
+
+/* filtros */
+
+.filtros-citas {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+.busqueda-citas {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    width: 100%;
+    max-width: 420px;
+
+    padding: 9px 13px;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 6px;
+}
+
+.busqueda-citas i {
+    color: #737985;
+}
+
+.busqueda-citas input {
+    width: 100%;
+
+    border: none;
+    outline: none;
+
+    color: #333;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+}
+
+.filtros-citas select {
+    min-width: 160px;
+
+    padding: 9px 12px;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 6px;
+
+    background-color: white;
+
+    color: #444a55;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+}
+
+
+/* tabla citas */
+
+.tabla-citas {
+    overflow: hidden;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 7px;
+}
+
+.tabla-citas-header,
+.fila-cita {
+    display: grid;
+
+    grid-template-columns:
+        1.1fr
+        0.8fr
+        0.7fr
+        1.5fr
+        1.3fr
+        0.8fr
+        1fr;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 13px 20px;
+}
+
+.tabla-citas-header {
+    background-color: #f7f8fa;
+
+    border-bottom: 1px solid #e4e7eb;
+
+    color: #555b66;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.fila-cita {
+    min-height: 64px;
+
+    border-bottom: 1px solid #eceef1;
+
+    font-size: 11px;
+}
+
+.fila-cita:last-child {
+    border-bottom: none;
+}
+
+.fila-cita p {
+    margin: 0;
+
+    color: #5d626d;
+
+    font-size: 11px;
+}
+
+
+/* mascota */
+
+.nombre-cita-mascota {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    color: #08006b;
+}
+
+.nombre-cita-mascota strong {
+    font-size: 14px;
+}
+
+.nombre-cita-mascota .icono-mascota {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+
+    background-color: #d9efff;
+    color: #00486f;
+
+    font-size: 15px;
+}
+
+
+/* estados */
+
+.estado-cita {
+    display: inline-block;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.estado-cita.confirmada {
+    background-color: #dff5df;
+    color: #27762f;
+}
+
+.estado-cita.pendiente {
+    background-color: #fff0cf;
+    color: #7a5c16;
+}
+
+.estado-cita.atendida {
+    background-color: #dcecff;
+    color: #245b91;
+}
+
+.estado-cita.cancelada {
+    background-color: #ffe0e0;
+    color: #a32626;
+}
+
+
+/* acciones */
+
+.acciones-cita {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-cita-secundario,
+.btn-cita-cancelar {
+    padding: 7px 13px;
+
+    border-radius: 6px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.btn-cita-secundario {
+    border: 1px solid #0789ce;
+
+    background-color: white;
+    color: #0071ad;
+}
+
+.btn-cita-secundario:hover {
+    background-color: #f1faff;
+}
+
+.btn-cita-cancelar {
+    border: 1px solid #d9534f;
+
+    background-color: white;
+    color: #c43c38;
+}
+
+.btn-cita-cancelar:hover {
+    background-color: #fff4f4;
+}
+
+
+/* responsive citas */
+
+@media (max-width: 1000px) {
+
+    .tabla-citas {
+        overflow-x: auto;
+    }
+
+    .tabla-citas-header,
+    .fila-cita {
+        min-width: 950px;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .cabecera-citas {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cabecera-citas h2 {
+        font-size: 22px;
+    }
+
+    .filtros-citas {
+        flex-direction: column;
+    }
+
+    .busqueda-citas,
+    .filtros-citas select {
+        width: 100%;
+        max-width: none;
+    }
+
+}
+
+/* ==================================================
+   CAMBIAR CONTRASEÑA
+   ================================================== */
+
+.password-meter {
+    margin-top: 10px;
+}
+
+.password-meter-barra {
+    height: 6px;
+    width: 100%;
+    background: #eceef1;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.password-meter-barra span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: #d0d5dd;
+    transition: width .25s ease, background .25s ease;
+}
+
+.password-meter-barra span.debil {
+    background: #dc2626;
+}
+
+.password-meter-barra span.media {
+    background: #d97706;
+}
+
+.password-meter-barra span.fuerte {
+    background: #059669;
+}
+
+.password-meter small {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #8b93a1;
+}
+
+.password-coincidencia {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.password-coincidencia.ok {
+    color: #059669;
+}
+
+.password-coincidencia.error {
+    color: #dc2626;
+}

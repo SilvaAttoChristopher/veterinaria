@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Registrar Mascota | VetWeb')}">
+    <title>Registrar Mascota | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/mascotas}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver al directorio
+                </a>
+
+                <h2 th:text="${idMascota != null} ? 'Editar Mascota' : 'Registrar Nueva Mascota'">Registrar Nueva Mascota</h2>
+
+                <p>
+                    Ingresa los datos clínicos iniciales para la creación del expediente veterinario.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formMascota" onsubmit="return false;">
+
+                    <!-- informacion general -->
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-briefcase-medical"></i>
+
+                        <h3>Información General</h3>
+
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="nombreMascota">NOMBRE DE LA MASCOTA</label>
+                            <input type="text" id="nombreMascota" name="nombre" placeholder="Ej. Max" required>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="especie">ESPECIE</label>
+                            <select id="especie" name="especie" required>
+                                <option value="" selected disabled>Seleccione especie</option>
+                                <option value="Canino">Canino</option>
+                                <option value="Felino">Felino</option>
+                                <option value="Ave">Ave</option>
+                                <option value="Reptil">Reptil</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="raza">RAZA</label>
+                            <input type="text" id="raza" name="raza" placeholder="Ej. Golden Retriever">
+                        </div>
+
+                        <div class="campo-edad">
+                            <div class="campo-registro-mascota">
+                                <label for="edad">EDAD</label>
+                                <input type="number" id="edad" name="edad" min="0" value="0">
+                            </div>
+
+                            <div class="campo-registro-mascota">
+                                <label for="unidadEdad">&nbsp;</label>
+                                <select id="unidadEdad" name="unidadEdad">
+                                    <option value="A">Años</option>
+                                    <option value="M">Meses</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="sexo">SEXO</label>
+                            <select id="sexo" name="sexo">
+                                <option value="">Seleccione</option>
+                                <option value="M">Macho</option>
+                                <option value="F">Hembra</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="peso">PESO (KG)</label>
+                            <input type="number" id="peso" name="peso" min="0" step="0.01" placeholder="0.0">
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <!-- evaluacion -->
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-clipboard2-pulse"></i>
+
+                        <h3>Evaluación Inicial</h3>
+
+                    </div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="observaciones">OBSERVACIONES MÉDICAS INICIALES</label>
+                        <textarea id="observaciones" name="observaciones"
+                            placeholder="Describa el motivo de consulta, síntomas o antecedentes relevantes..."></textarea>
+                    </div>
+
+                    <!-- botones -->
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/mascotas}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar" onclick="guardarMascota()">
+                            <i class="bi bi-floppy"></i>
+                            <span th:text="${idMascota != null} ? 'Guardar Cambios' : 'Guardar Registro'">Guardar Registro</span>
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const MASCOTA_ID = [[${idMascota}]];
+        /*]]>*/
+        const MASCOTA_ID_FALLBACK = /*[[${idMascota}]]*/ null;
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            if (MASCOTA_ID === null || MASCOTA_ID === undefined) return;
+
+            try {
+                const res = await fetch(`/api/mascotas/${MASCOTA_ID}`, { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const m = await res.json();
+
+                document.getElementById('nombreMascota').value = m.nombre || '';
+                document.getElementById('especie').value = m.especie || '';
+                document.getElementById('raza').value = m.raza || '';
+                document.getElementById('sexo').value = m.sexo || '';
+                document.getElementById('peso').value = m.peso != null ? m.peso : '';
+                document.getElementById('observaciones').value = m.observaciones || '';
+
+                if (m.fechaNacimiento) {
+                    const nac = new Date(m.fechaNacimiento);
+                    const hoy = new Date();
+                    let anios = hoy.getFullYear() - nac.getFullYear();
+                    let meses = hoy.getMonth() - nac.getMonth();
+                    if (meses < 0) {
+                        anios -= 1;
+                        meses += 12;
+                    }
+                    if (anios > 0) {
+                        document.getElementById('edad').value = anios;
+                        document.getElementById('unidadEdad').value = 'A';
+                    } else {
+                        document.getElementById('edad').value = meses;
+                        document.getElementById('unidadEdad').value = 'M';
+                    }
+                }
+            } catch (e) {
+                console.error('Error cargando mascota:', e);
+            }
+        }
+
+        function calcularFechaNacimiento() {
+            const edad = parseInt(document.getElementById('edad').value, 10);
+            const unidad = document.getElementById('unidadEdad').value;
+            if (isNaN(edad) || edad <= 0) return null;
+
+            const fecha = new Date();
+            if (unidad === 'A') {
+                fecha.setFullYear(fecha.getFullYear() - edad);
+            } else {
+                fecha.setMonth(fecha.getMonth() - edad);
+            }
+            return fecha.toISOString().split('T')[0];
+        }
+
+        async function guardarMascota() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const result = await Auth.getCurrentUser();
+            if (!result.success) {
+                alert('Sesión expirada');
+                btn.disabled = false;
+                return;
+            }
+
+            const pesoRaw = document.getElementById('peso').value.trim();
+            const payload = {
+                nombre: document.getElementById('nombreMascota').value.trim(),
+                especie: document.getElementById('especie').value,
+                raza: document.getElementById('raza').value.trim() || null,
+                sexo: document.getElementById('sexo').value || null,
+                fechaNacimiento: calcularFechaNacimiento(),
+                peso: pesoRaw ? parseFloat(pesoRaw) : null,
+                observaciones: document.getElementById('observaciones').value.trim() || null,
+                cliente: { idUsuario: result.data.id }
+            };
+
+            const esEdicion = MASCOTA_ID !== null && MASCOTA_ID !== undefined;
+            const url = esEdicion ? `/api/mascotas/${MASCOTA_ID}` : '/api/mascotas';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard/mascotas';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al guardar la mascota');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

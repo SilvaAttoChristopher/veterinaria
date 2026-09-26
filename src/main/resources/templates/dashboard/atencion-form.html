@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Registrar Atención | VetWeb')}">
+    <title>Registrar Atención | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/citas-vet}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a mis citas
+                </a>
+
+                <h2>Registrar Atención</h2>
+
+                <p>
+                    Completa el registro clínico de la consulta. Al guardar, la cita se marcará
+                    como ATENDIDA y el historial de la mascota se actualizará.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formAtencion" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-clipboard2-pulse"></i>
+
+                        <h3>Datos de la Consulta</h3>
+
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label>MASCOTA</label>
+                            <input type="text" id="atencionMascotaNombre" readonly class="input-bloqueado">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label>FECHA DE LA CITA</label>
+                            <input type="text" id="atencionFecha" readonly class="input-bloqueado">
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="atencionMotivo">MOTIVO DE LA CONSULTA</label>
+                        <input type="text" id="atencionMotivo" required
+                            placeholder="Ej. Dolor en extremidad posterior izquierda">
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="atencionDiagnostico">DIAGNÓSTICO</label>
+                        <textarea id="atencionDiagnostico" rows="3" required
+                            placeholder="Describa el diagnóstico..."></textarea>
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-capsule"></i>
+
+                        <h3>Tratamiento</h3>
+
+                    </div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="atencionTratamiento">TRATAMIENTO APLICADO</label>
+                        <textarea id="atencionTratamiento" rows="3"
+                            placeholder="Describa el tratamiento..."></textarea>
+                    </div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="atencionObservaciones">OBSERVACIONES</label>
+                        <textarea id="atencionObservaciones" rows="2"
+                            placeholder="Indicaciones para el propietario..."></textarea>
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/citas-vet}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar" onclick="guardarAtencion()">
+                            <i class="bi bi-floppy"></i>
+                            Guardar Atención
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const CITA_ID = [[${idCita}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            if (CITA_ID === null || CITA_ID === undefined) return;
+
+            try {
+                const res = await fetch(`/api/citas/${CITA_ID}`, { credentials: 'same-origin' });
+                if (!res.ok) {
+                    alert('No se pudo cargar la cita');
+                    return;
+                }
+
+                const c = await res.json();
+                document.getElementById('atencionMascotaNombre').value = c.mascota?.nombre || '—';
+                document.getElementById('atencionFecha').value =
+                    `${c.fecha || '—'} ${(c.hora || '').slice(0, 5)}`;
+
+                if (c.motivo) {
+                    document.getElementById('atencionMotivo').value = c.motivo;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function guardarAtencion() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const result = await Auth.getCurrentUser();
+            if (!result.success) {
+                alert('Sesión expirada');
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const citaRes = await fetch(`/api/citas/${CITA_ID}`, { credentials: 'same-origin' });
+                if (!citaRes.ok) throw new Error('cita no encontrada');
+                const cita = await citaRes.json();
+
+                const historialData = {
+                    mascota: { idMascota: cita.mascota?.idMascota },
+                    veterinario: { idUsuario: result.data.id },
+                    motivo: document.getElementById('atencionMotivo').value.trim(),
+                    diagnostico: document.getElementById('atencionDiagnostico').value.trim(),
+                    tratamiento: document.getElementById('atencionTratamiento').value.trim(),
+                    observaciones: document.getElementById('atencionObservaciones').value.trim()
+                };
+
+                const historialRes = await fetch('/api/historial', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(historialData),
+                    credentials: 'same-origin'
+                });
+
+                if (!historialRes.ok) {
+                    const err = await historialRes.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al registrar la atención');
+                    btn.disabled = false;
+                    return;
+                }
+
+                const citaPut = await fetch(`/api/citas/${CITA_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mascota: { idMascota: cita.mascota?.idMascota },
+                        veterinario: { idUsuario: cita.veterinario?.idUsuario },
+                        servicio: { idServicio: cita.servicio?.idServicio },
+                        fecha: cita.fecha,
+                        hora: cita.hora,
+                        motivo: cita.motivo,
+                        estado: 'ATENDIDA'
+                    }),
+                    credentials: 'same-origin'
+                });
+
+                if (citaPut.ok) {
+                    window.location.href = '/dashboard/citas-vet';
+                } else {
+                    alert('Atención registrada, pero no se pudo actualizar el estado de la cita');
+                    window.location.href = '/dashboard/citas-vet';
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

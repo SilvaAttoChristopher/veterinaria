@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/dashboard-layout :: head('Dashboard - Notificaciones')}">
+    <title>Dashboard - Notificaciones</title>
+</head>
+<body>
+    <div class="dashboard">
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+            <div class="encabezado-mascotas">
+                <div>
+                    <h2>Notificaciones</h2>
+                    <p>Centro de notificaciones</p>
+                </div>
+                <div>
+                    <span class="badge bg-primary" id="contadorPendientes">0 pendientes</span>
+                </div>
+            </div>
+
+            <div class="lista-mascotas" id="listaNotificaciones">
+                <!-- Se carga dinámicamente -->
+            </div>
+        </main>
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+    
+    <script>
+        let notificaciones = [];
+        let usuarioActual = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            const result = await Auth.getCurrentUser();
+            if (result.success) {
+                usuarioActual = result.data;
+                await cargarNotificaciones();
+            }
+        });
+
+        async function cargarNotificaciones() {
+            try {
+                const response = await fetch(`/api/notificaciones/usuario/${usuarioActual.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (response.ok) {
+                    notificaciones = await response.json();
+                    renderizarNotificaciones();
+                    actualizarContador();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function renderizarNotificaciones() {
+            const container = document.getElementById('listaNotificaciones');
+            if (notificaciones.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">No tienes notificaciones</p>';
+                return;
+            }
+            
+            const iconos = {
+                'CITA_PROXIMA': 'bi-calendar-check',
+                'VACUNACION_PROXIMA': 'bi-capsule',
+                'SISTEMA': 'bi-info-circle'
+            };
+            
+            container.innerHTML = notificaciones.map(n => `
+                <div class="tarjeta-mascota" style="opacity: ${n.estadoLeida ? '0.7' : '1'}">
+                    <div class="mascota-encabezado">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i class="bi ${iconos[n.tipo] || 'bi-bell'}" style="font-size: 24px; color: #08008f;"></i>
+                            <div>
+                                <h3 style="font-size: 16px;">${n.tipo.replace('_', ' ')}</h3>
+                                <div><small class="text-muted">${formatFecha(n.fecha)}</small></div>
+                            </div>
+                        </div>
+                        ${!n.estadoLeida ? '<span class="badge bg-primary">Nueva</span>' : '<span class="badge bg-secondary">Leída</span>'}
+                    </div>
+                    <div class="mascota-dato">
+                        <i class="bi bi-chat-left-text"></i>
+                        <div>
+                            <p>${n.mensaje}</p>
+                        </div>
+                    </div>
+                    ${!n.estadoLeida ? `
+                    <div style="padding: 12px;">
+                        <button class="btn btn-sm btn-outline-primary" onclick="marcarLeida(${n.idNotificacion})">
+                            <i class="bi bi-check-circle"></i> Marcar como leída
+                        </button>
+                    </div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function actualizarContador() {
+            const pendientes = notificaciones.filter(n => !n.estadoLeida).length;
+            document.getElementById('contadorPendientes').textContent = `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`;
+        }
+
+        function formatFecha(fecha) {
+            if (!fecha) return '-';
+            const date = new Date(fecha);
+            return date.toLocaleDateString('es-PE', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function marcarLeida(id) {
+            try {
+                const response = await fetch(`/api/notificaciones/${id}/leida`, {
+                    method: 'PATCH',
+                    credentials: 'same-origin'
+                });
+                if (response.ok) {
+                    await cargarNotificaciones();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

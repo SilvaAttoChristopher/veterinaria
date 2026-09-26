@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Registrar Vacunación | VetWeb')}">
+    <title>Registrar Vacunación | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/cartilla}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a la cartilla
+                </a>
+
+                <h2>Registrar Vacunación</h2>
+
+                <p>
+                    Registra una aplicación de vacuna en la cartilla de la mascota seleccionada.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formVacunacion" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+
+                        <i class="bi bi-capsule"></i>
+
+                        <h3>Datos de la Vacunación</h3>
+
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="vacMascota">MASCOTA</label>
+                            <select id="vacMascota" required onchange="cargarCartilla()">
+                                <option value="">Seleccione mascota</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="vacVacuna">VACUNA</label>
+                            <select id="vacVacuna" required>
+                                <option value="">Seleccione vacuna</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="vacFecha">FECHA DE APLICACIÓN</label>
+                            <input type="date" id="vacFecha" required>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="vacProxima">PRÓXIMA DOSIS</label>
+                            <input type="date" id="vacProxima">
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="campo-registro-mascota campo-observaciones">
+                        <label for="vacObservaciones">OBSERVACIONES</label>
+                        <textarea id="vacObservaciones" rows="2"
+                            placeholder=" lote, vía de aplicación, reacciones..."></textarea>
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/cartilla}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar" onclick="guardarVacunacion()">
+                            <i class="bi bi-floppy"></i>
+                            Guardar Vacunación
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            document.getElementById('vacFecha').value = new Date().toISOString().split('T')[0];
+            await Promise.all([cargarMascotas(), cargarVacunas()]);
+        });
+
+        async function cargarMascotas() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            try {
+                const res = await fetch(`/api/mascotas/cliente/${result.data.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                const mascotas = await res.json();
+                const sel = document.getElementById('vacMascota');
+                sel.innerHTML = '<option value="">Seleccione mascota</option>' +
+                    mascotas.map(m => `<option value="${m.idMascota}">${m.nombre}</option>`).join('');
+
+                if (mascotas.length > 0) {
+                    sel.value = mascotas[0].idMascota;
+                    cargarCartilla();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarVacunas() {
+            try {
+                const res = await fetch('/api/vacunas', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const vacunas = await res.json();
+                const sel = document.getElementById('vacVacuna');
+                sel.innerHTML = '<option value="">Seleccione vacuna</option>' +
+                    vacunas.filter(v => v.vigente !== false)
+                        .map(v => `<option value="${v.idVacuna}">${v.nombre}</option>`).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarCartilla() {
+            const mascotaId = document.getElementById('vacMascota').value;
+            if (!mascotaId) return;
+
+            try {
+                const res = await fetch(`/api/cartillas/mascota/${mascotaId}`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!res.ok) {
+                    alert('Esta mascota no tiene cartilla. Créala primero desde la página de Cartilla.');
+                    window.location.href = '/dashboard/cartilla';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function guardarVacunacion() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const mascotaId = document.getElementById('vacMascota').value;
+            const cartillaRes = await fetch(`/api/cartillas/mascota/${mascotaId}`, {
+                credentials: 'same-origin'
+            });
+
+            if (!cartillaRes.ok) {
+                alert('La mascota no tiene cartilla registrada');
+                btn.disabled = false;
+                return;
+            }
+
+            const cartilla = await cartillaRes.json();
+
+            const payload = {
+                cartilla: { idCartilla: cartilla.idCartilla },
+                vacuna: { idVacuna: parseInt(document.getElementById('vacVacuna').value, 10) },
+                fechaAplicacion: document.getElementById('vacFecha').value,
+                proximaDosis: document.getElementById('vacProxima').value || null,
+                observaciones: document.getElementById('vacObservaciones').value.trim() || null
+            };
+
+            try {
+                const res = await fetch('/api/vacunaciones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    window.location.href = '/dashboard/cartilla';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al registrar la vacunación');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

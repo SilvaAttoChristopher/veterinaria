@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Dashboard - CiruVet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="icon" type="image/png" th:href="@{/imagenes/favicon.ico}">
+</head>
+<body>
+    <!-- Sidebar fragment for CLIENTE -->
+    <aside class="sidebar" th:fragment="sidebarCliente">
+        <a th:href="@{/dashboard/perfil}" class="logo-dashboard">VetWeb</a>
+        <div class="usuario-sidebar">
+            <img th:src="@{/imagenes/perfil.png}" alt="Imagen de usuario">
+            <div>
+                <strong id="sidebarUserName" th:text="${usuario?.nombres + ' ' + usuario?.apellidos ?: 'Usuario'}">Usuario</strong>
+                <span>Cliente</span>
+            </div>
+        </div>
+        <nav class="menu-dashboard">
+            <a th:href="@{/dashboard/perfil}" th:classappend="${activePage == 'perfil'} ? 'activo' : ''">
+                <i class="bi bi-person-circle"></i>
+                Perfil
+            </a>
+            <a th:href="@{/dashboard/mascotas}" th:classappend="${activePage == 'mascotas'} ? 'activo' : ''">
+                <i class="bi bi-heart-fill"></i>
+                Mascotas
+            </a>
+            <a th:href="@{/dashboard/citas}" th:classappend="${activePage == 'citas'} ? 'activo' : ''">
+                <i class="bi bi-calendar3"></i>
+                Citas
+            </a>
+            <a th:href="@{/dashboard/cartilla}" th:classappend="${activePage == 'cartilla'} ? 'activo' : ''">
+                <i class="bi bi-capsule"></i>
+                Cartilla
+            </a>
+            <a th:href="@{/dashboard/notificaciones}" th:classappend="${activePage == 'notificaciones'} ? 'activo' : ''">
+                <i class="bi bi-bell"></i>
+                Notificaciones
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a th:href="@{/dashboard/editar-perfil}">
+                <i class="bi bi-gear"></i>
+                Ajustes
+            </a>
+            <a th:href="@{/dashboard/cambiar-password}">
+                <i class="bi bi-shield-lock"></i>
+                Cambiar Contraseña
+            </a>
+            <a href="#" class="cerrar-sesion" onclick="Auth.logout(); return false;">
+                <i class="bi bi-box-arrow-right"></i>
+                Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Sidebar fragment for VETERINARIO -->
+    <aside class="sidebar" th:fragment="sidebarVeterinario">
+        <a th:href="@{/dashboard/perfil-medico}" class="logo-dashboard">VetWeb</a>
+        <div class="usuario-sidebar">
+            <img th:src="@{/imagenes/medico.png}" alt="Imagen de usuario">
+            <div>
+                <strong id="sidebarUserName" th:text="${usuario?.nombres + ' ' + usuario?.apellidos ?: 'Doctor'}">Doctor</strong>
+                <span id="sidebarUserRole">Especialidad</span>
+            </div>
+        </div>
+        <nav class="menu-dashboard">
+            <a th:href="@{/dashboard/perfil-medico}" th:classappend="${activePage == 'perfil'} ? 'activo' : ''">
+                <i class="bi bi-person-circle"></i>
+                Perfil
+            </a>
+            <a th:href="@{/dashboard/mascotas-vet}" th:classappend="${activePage == 'mascotas'} ? 'activo' : ''">
+                <i class="bi bi-heart-fill"></i>
+                Mascotas
+            </a>
+            <a th:href="@{/dashboard/citas-vet}" th:classappend="${activePage == 'citas'} ? 'activo' : ''">
+                <i class="bi bi-calendar3"></i>
+                Citas
+            </a>
+            <a th:href="@{/dashboard/notificaciones}" th:classappend="${activePage == 'notificaciones'} ? 'activo' : ''">
+                <i class="bi bi-bell"></i>
+                Notificaciones
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a th:href="@{/dashboard/editar-perfil-medico}">
+                <i class="bi bi-gear"></i>
+                Ajustes
+            </a>
+            <a th:href="@{/dashboard/cambiar-password}">
+                <i class="bi bi-shield-lock"></i>
+                Cambiar Contraseña
+            </a>
+            <a href="#" class="cerrar-sesion" onclick="Auth.logout(); return false;">
+                <i class="bi bi-box-arrow-right"></i>
+                Cerrar Sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Scripts fragment -->
+    <div th:fragment="scripts">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <script th:src="@{/js/auth.js}"></script>
+        <script th:src="@{/js/dashboard.js}"></script>
+    </div>
+</body>
+</html>

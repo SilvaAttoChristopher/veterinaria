@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CiruVet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="icon" type="image/png" href="../imagenes/favicon.ico">
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <aside class="sidebar">
+            <h1 class="logo-dashboard">VetWeb</h1>
+            <div class="usuario-sidebar">
+                <!-- Necesito la imagen del usuario -->
+                <img src="../imagenes/perfil.png" alt="Imagen de usuario">
+                <div>
+                    <strong>Juan Martinez</strong>
+                    <span>Cliente</span>
+                </div>
+            </div>
+            <nav class="menu-dashboard">
+
+                <a href="dashboard_perfilcliente.html" class="activo">
+                    <i class="bi bi-person-circle"></i>
+                    Perfil
+                </a>
+
+                <a href="dashboard_mascotas.html">
+                    <i class="bi bi-people-fill"></i>
+                    Mascotas
+                </a>
+
+                <a href="dashboard_citas.html">
+                    <i class="bi bi-calendar3"></i>
+                    Citas
+                </a>
+
+                <a href="dashboard_notificaciones.html">
+                    <i class="bi bi-bell"></i>
+                    Notificaciones
+                </a>
+
+            </nav>
+
+
+            <!-- Parte inferior -->
+            <div class="sidebar-footer">
+
+                <a href="#">
+                    <i class="bi bi-gear"></i>
+                    Ajustes
+                </a>
+
+                <a href="../index.html" class="cerrar-sesion">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+
+            </div>
+
+        </aside>
+
+
+        <!-- ================= CONTENIDO ================= -->
+
+        <main class="contenido-dashboard">
+            <h2 class="titulo-dashboard">
+                Perfil del usuario
+            </h2>
+
+
+            <section class="perfil-card">
+
+                <!-- CABECERA PERFIL -->
+
+                <div class="perfil-header">
+
+                    <div class="perfil-usuario">
+
+                        <img src="../imagenes/perfil.png" alt="Carlos Martínez">
+
+                        <div>
+
+                            <h3>
+                                Carlos Martínez
+                            </h3>
+
+                            <p>
+                                CMARTINEZ@CIRUVET.COM
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <button class="btn-editar">
+
+                        <i class="bi bi-pencil"></i>
+
+                        Editar Información
+
+                    </button>
+
+                </div>
+
+
+                <!-- ================= INFORMACIÓN ================= -->
+
+                <div class="perfil-contenido">
+
+                    <h3>
+                        Información Personal
+                    </h3>
+
+
+                    <div class="datos-grid">
+
+    <div class="dato-perfil">
+        <span>NOMBRES</span>
+        <p>Carlos</p>
+    </div>
+
+    <div class="dato-perfil">
+        <span>APELLIDOS</span>
+        <p>Martínez</p>
+    </div>
+
+    <div class="dato-perfil">
+        <span>CORREO ELECTRÓNICO</span>
+        <p>cmartinez@ciruvet.com</p>
+    </div>
+
+    <div class="dato-perfil">
+        <span>NÚMERO DE TELÉFONO</span>
+        <p>+51 900 123 456</p>
+    </div>
+
+    <div class="dato-perfil">
+        <span>DNI</span>
+        <p>74581236</p>
+    </div>
+
+    <div class="dato-perfil">
+        <span>DIRECCIÓN</span>
+        <p>Av. Venezuela 30, Lima</p>
+    </div>
+
+    <div class="dato-perfil dato-completo">
+        <span>ESPECIALIDAD CLÍNICA</span>
+        <p>Traumatología y Ortopedia</p>
+    </div>
+
+</div>
+
+                    <!-- ================= INFORMACIÓN CLÍNICA ================= -->
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/dashboard.js"></script>
+</body>
+
+</html>

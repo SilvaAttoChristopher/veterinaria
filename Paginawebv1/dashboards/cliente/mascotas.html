@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Mascotas | VetWeb</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="../../css/dashboard.css">
+    <link rel="icon" href="../../imagenes/favicon.ico">
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <!-- sidebar -->
+
+        <aside class="sidebar">
+
+            <a href="../../index.html" class="logo-dashboard">VetWeb</a>
+
+            <div class="usuario-sidebar">
+
+                <img src="../../imagenes/perfil.png" alt="Juan Martínez">
+
+                <div>
+                    <strong>Juan Martínez</strong>
+                    <span>Cliente</span>
+                </div>
+
+            </div>
+
+            <!-- menu -->
+
+            <nav class="menu-dashboard">
+
+                <a href="perfil.html">
+                    <i class="bi bi-person-circle"></i>
+                    Perfil
+                </a>
+
+                <a href="mascotas.html" class="activo">
+                    <i class="bi bi-heart-fill"></i>
+                    Mascotas
+                </a>
+
+                <a href="citas.html">
+                    <i class="bi bi-calendar3"></i>
+                    Citas
+                </a>
+
+                <a href="notificaciones.html">
+                    <i class="bi bi-bell"></i>
+                    Notificaciones
+                </a>
+
+            </nav>
+
+            <!-- sidebar footer -->
+
+            <div class="sidebar-footer">
+
+                <a href="#">
+                    <i class="bi bi-gear"></i>
+                    Ajustes
+                </a>
+
+                <a href="../../index.html" class="cerrar-sesion">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Cerrar Sesión
+                </a>
+
+            </div>
+
+        </aside>
+
+        <!-- mascotas -->
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+
+                <div>
+                    <h2>Mis Mascotas</h2>
+                    <p>Consulta y administra la información de tus mascotas registradas.</p>
+                </div>
+
+                <a href="registrar-mascota.html" class="btn-nueva-mascota">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Mascota
+                </a>
+
+            </div>
+
+            <!-- buscador -->
+
+            <div class="busqueda-panel">
+
+                <i class="bi bi-search"></i>
+
+                <input type="text"
+                    placeholder="Buscar mascota por nombre o raza...">
+
+            </div>
+
+            <!-- tabla -->
+
+            <section class="tabla-mascotas">
+
+                <div class="tabla-mascotas-header">
+
+                    <span>NOMBRE DE LA MASCOTA</span>
+                    <span>ESPECIE / RAZA</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+
+                </div>
+
+                <!-- luna -->
+
+                <div class="fila-mascota">
+
+                    <div class="nombre-mascota-tabla">
+
+                        <div class="icono-mascota">
+                            <i class="bi bi-paw-fill"></i>
+                        </div>
+
+                        <strong>Luna</strong>
+
+                    </div>
+
+                    <p>Canino / Golden Retriever</p>
+
+                    <div>
+                        <span class="estado-tabla estable">
+                            Estable
+                        </span>
+                    </div>
+
+                    <div class="acciones-mascota">
+
+                        <a href="#" class="btn-tabla-secundario">
+                            Editar
+                        </a>
+
+                        <a href="#" class="btn-tabla-principal">
+                            Ver Citas
+                        </a>
+
+                    </div>
+
+                </div>
+
+                <!-- max -->
+
+                <div class="fila-mascota">
+
+                    <div class="nombre-mascota-tabla">
+
+                        <div class="icono-mascota">
+                            <i class="bi bi-paw-fill"></i>
+                        </div>
+
+                        <strong>Max</strong>
+
+                    </div>
+
+                    <p>Felino / Siamés</p>
+
+                    <div>
+                        <span class="estado-tabla pendiente">
+                            Pendiente
+                        </span>
+                    </div>
+
+                    <div class="acciones-mascota">
+
+                        <a href="#" class="btn-tabla-secundario">
+                            Editar
+                        </a>
+
+                        <a href="#" class="btn-tabla-principal">
+                            Ver Citas
+                        </a>
+
+                    </div>
+
+                </div>
+
+                <!-- kira -->
+
+                <div class="fila-mascota">
+
+                    <div class="nombre-mascota-tabla">
+
+                        <div class="icono-mascota">
+                            <i class="bi bi-paw-fill"></i>
+                        </div>
+
+                        <strong>Kira</strong>
+
+                    </div>
+
+                    <p>Canino / Husky</p>
+
+                    <div>
+                        <span class="estado-tabla urgente">
+                            Urgente
+                        </span>
+                    </div>
+
+                    <div class="acciones-mascota">
+
+                        <a href="#" class="btn-tabla-secundario">
+                            Editar
+                        </a>
+
+                        <a href="#" class="btn-tabla-principal">
+                            Ver Citas
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

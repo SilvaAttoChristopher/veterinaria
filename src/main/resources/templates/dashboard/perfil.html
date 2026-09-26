@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Mi Perfil | VetWeb')}">
+    <title>Mi Perfil | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="titulo-dashboard">
+                <h2>Mi Perfil</h2>
+                <p>Información personal y de contacto registrada en VetWeb.</p>
+            </div>
+
+            <section class="perfil-card">
+
+                <div class="perfil-header">
+                    <div class="perfil-usuario">
+                        <img th:src="@{/imagenes/perfil.png}" alt="Usuario">
+                        <div>
+                            <h3 id="perfilNombre">Cargando...</h3>
+                            <p id="perfilCorreo">-</p>
+                        </div>
+                    </div>
+                    <a th:href="@{/dashboard/editar-perfil}" class="btn-editar">
+                        <i class="bi bi-pencil"></i>
+                        Editar Información
+                    </a>
+                </div>
+
+                <div class="perfil-contenido">
+                    <h3>Información Personal</h3>
+                    <div class="datos-grid">
+                        <div class="dato-perfil">
+                            <span>NOMBRES</span>
+                            <p id="campoNombres">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>APELLIDOS</span>
+                            <p id="campoApellidos">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>CORREO ELECTRÓNICO</span>
+                            <p id="campoCorreo">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>NÚMERO DE TELÉFONO</span>
+                            <p id="campoTelefono">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>DNI</span>
+                            <p id="campoDni">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>DIRECCIÓN</span>
+                            <p id="campoDireccion">-</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            const u = result.data;
+            document.getElementById('perfilNombre').textContent = `${u.nombres} ${u.apellidos}`;
+            document.getElementById('perfilCorreo').textContent = u.correo || '';
+
+            document.getElementById('campoNombres').textContent = u.nombres || '-';
+            document.getElementById('campoApellidos').textContent = u.apellidos || '-';
+            document.getElementById('campoCorreo').textContent = u.correo || '-';
+            document.getElementById('campoTelefono').textContent = u.telefono || '-';
+            document.getElementById('campoDireccion').textContent = u.direccion || '-';
+
+            try {
+                const res = await fetch(`/api/clientes/${u.id}`, { credentials: 'same-origin' });
+                if (res.ok) {
+                    const cliente = await res.json();
+                    document.getElementById('campoDni').textContent = cliente.dni || '-';
+                }
+            } catch (e) {
+                document.getElementById('campoDni').textContent = '-';
+            }
+        });
+    </script>
+
+</body>
+
+</html>

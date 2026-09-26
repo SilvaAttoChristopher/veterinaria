@@ -1,0 +1,1001 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f7fb;
+}
+
+.header {
+    width: 100%;
+    height: 80px;
+    background-color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 45px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Logo */
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo img {
+    width: 125px;
+    height: auto;
+}
+
+/* Navegacion */
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 38px;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #3f4250;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.nav a:hover {
+    color: #08008f;
+}
+
+/* Login */
+
+.header-button a {
+    display: inline-block;
+
+    padding: 10px 20px;
+
+    background-color: #08008f;
+    color: white;
+
+    text-decoration: none;
+
+    border-radius: 5px;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.header-button a:hover {
+    background-color: #05005c;
+}
+
+/* Seccion hero */
+
+.hero {
+    min-height: 470px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 50px 70px;
+
+    background-color: #f8fafc;
+}
+
+
+/* Contenido y el perro xd */
+
+.hero-content {
+    width: 48%;
+}
+
+.hero-content h1 {
+    font-family: 'Manrope', sans-serif;
+    color: #080878;
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 25px;
+}
+
+.hero-content p {
+    font-family: 'Manrope', sans-serif;
+    color: #4b4f5c;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.55;
+    max-width: 520px;
+    margin-bottom: 30px;
+}
+
+
+/* Botones */
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: inline-block;
+
+    padding: 13px 22px;
+
+    border-radius: 6px;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+/* Mas botones */
+
+.btn-primary {
+    background-color: #0800a8;
+    color: white;
+
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:hover {
+    background-color: #05006e;
+}
+
+
+/* Boton Secundario */
+
+.btn-secondary {
+    background-color: transparent;
+
+    color: #0075a8;
+
+    border: 2px solid #0075a8;
+}
+
+.btn-secondary:hover {
+    background-color: #0075a8;
+    color: white;
+}
+
+
+/* Imagen */
+
+.hero-image {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-image img {
+    width: 100%;
+    max-width: 560px;
+
+    height: 420px;
+
+    object-fit: cover;
+
+    border-radius: 15px;
+
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Segunda seccion (Servicios) */
+
+.services-2 {
+    padding: 50px 60px 80px;
+    background-color: #f8fafc;
+}
+
+
+.services-intro {
+    text-align: center;
+    margin-bottom: 45px;
+    margin-top: 120px;
+}
+
+.services-intro h2 {
+    font-family: 'Manrope', sans-serif;
+    color: #080878;
+    font-size: 30px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.services-intro p {
+    font-family: 'Manrope', sans-serif;
+    color: #4b4f5c;
+    font-size: 16px;
+    line-height: 1.5;
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+
+/* Tarjetas */
+
+.service-cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 70px;
+}
+
+
+
+.service-card {
+    flex: 1;
+
+    min-height: 260px;
+
+    padding: 32px 30px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+}
+
+
+
+.service-icon {
+    width: 45px;
+    height: 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background-color: #e0f2fe;
+
+    border-radius: 50%;
+
+    font-size: 20px;
+
+    margin-bottom: 25px;
+}
+
+
+
+.service-card h3 {
+    font-family: 'Manrope', sans-serif;
+
+    color: #080878;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    margin-bottom: 12px;
+}
+
+
+
+.service-card p {
+    font-family: 'Manrope', sans-serif;
+
+    color: #4b4f5c;
+
+    font-size: 16px;
+    line-height: 1.5;
+
+    margin-bottom: 25px;
+}
+
+
+
+.service-card a {
+    font-family: 'Manrope', sans-serif;
+
+    color: #0075a8;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.service-card a:hover {
+    text-decoration: underline;
+}
+
+/* Tercera Seccion */
+
+
+.sobre-nosotros {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+
+    padding: 70px 60px;
+
+    background-color: #f8fafc;
+}
+
+
+
+
+.imagen-nosotros {
+    width: 50%;
+}
+
+.imagen-nosotros img {
+    width: 100%;
+    height: 590px;
+
+    object-fit: cover;
+
+    border-radius: 15px;
+
+    display: block;
+}
+
+
+/* Sobre Nosotros  */
+
+.contenido-nosotros {
+    width: 50%;
+}
+
+.contenido-nosotros h2 {
+    font-family: 'Manrope', sans-serif;
+
+    color: #080878;
+
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.25;
+
+    margin-bottom: 25px;
+}
+
+.contenido-nosotros h2 strong {
+    font-weight: 800;
+}
+
+.contenido-nosotros>p {
+    font-family: 'Manrope', sans-serif;
+
+    color: #4b4f5c;
+
+    font-size: 17px;
+    line-height: 1.55;
+
+    margin-bottom: 30px;
+}
+
+
+/* Tarjetas */
+
+.tarjetas-informativas {
+    display: flex;
+    gap: 24px;
+}
+
+.tarjeta-informativa {
+    flex: 1;
+
+    padding: 22px;
+
+    background-color: #eef2ff;
+
+    border-radius: 12px;
+}
+
+.icono-informativo {
+    color: #080878;
+
+    font-size: 28px;
+
+    margin-bottom: 10px;
+}
+
+
+/* Card informativa */
+
+.tarjeta-informativa h3 {
+    font-family: 'Manrope', sans-serif;
+
+    color: #080878;
+
+    font-size: 15px;
+    font-weight: 700;
+
+    margin-bottom: 5px;
+}
+
+
+.tarjeta-informativa p {
+    font-family: 'Manrope', sans-serif;
+
+    color: #4b4f5c;
+
+    font-size: 13px;
+    line-height: 1.4;
+
+    margin: 0;
+}
+
+/* CONTACTO */
+
+.contacto {
+    padding: 60px 22px 70px;
+    background-color: #ffffff;
+}
+
+
+/* TITULO */
+
+.contacto-titulo {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.contacto-titulo h2 {
+    color: #080878;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.contacto-titulo p {
+    color: #4b4f5c;
+    font-size: 14px;
+    margin: 0;
+}
+
+
+/* CONTENIDO */
+
+.contacto-contenido {
+    display: flex;
+    gap: 22px;
+
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+
+/* INFORMACIÓN */
+
+.informacion-contacto {
+    width: 40%;
+
+    padding: 25px 22px;
+
+    background-color: #eef2ff;
+
+    border-radius: 11px;
+}
+
+.informacion-contacto h3,
+.formulario-contacto h3 {
+    color: #080878;
+    font-size: 18px;
+    font-weight: 700;
+
+    margin-bottom: 25px;
+}
+
+
+/* DATOS */
+
+.dato-contacto {
+    display: flex;
+    gap: 12px;
+
+    margin-bottom: 20px;
+}
+
+.icono {
+    color: #0085c7;
+    font-size: 22px;
+    min-width: 15px;
+}
+
+.dato-contacto strong {
+    display: block;
+
+    color: #263449;
+
+    font-size: 12px;
+
+    margin-bottom: 3px;
+}
+
+.dato-contacto p {
+    color: #4b4f5c;
+
+    font-size: 12px;
+    line-height: 1.5;
+
+    margin: 0;
+}
+
+
+/* Ultima seccion - Formulario */
+
+
+
+.formulario-contacto {
+    width: 60%;
+
+    padding: 32px 28px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 11px;
+}
+
+
+
+.formulario-contacto h3 {
+    color: #080878;
+
+    font-size: 20px;
+    font-weight: 700;
+
+    margin-bottom: 28px;
+}
+
+
+.fila-formulario {
+    display: flex;
+    gap: 15px;
+
+    margin-bottom: 18px;
+}
+
+.campo {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.campo label {
+    color: #263449;
+
+    font-size: 11px;
+    font-weight: 500;
+
+    margin-bottom: 7px;
+}
+
+
+.campo input,
+.campo textarea {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 7px;
+
+    padding: 10px 12px;
+
+    outline: none;
+}
+
+
+
+.campo input {
+    height: 42px;
+}
+
+
+.campo textarea {
+    height: 95px;
+    resize: none;
+}
+
+
+.campo input:focus,
+.campo textarea:focus {
+    border-color: #0800a8;
+}
+
+
+.formulario-contacto button {
+    width: 100%;
+    height: 44px;
+
+    margin-top: 5px;
+
+    border: none;
+    border-radius: 7px;
+
+    background-color: #0800a8;
+    color: white;
+
+    font-family: 'Manrope', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.formulario-contacto button:hover {
+    background-color: #05006e;
+}
+
+/* Footer */
+
+.footer {
+    background-color: #263449;
+    text-align: center;
+    padding: 45px 20px 35px;
+}
+
+.footer-logo {
+    margin-bottom: 20px;
+}
+
+.footer-logo img {
+    width: 15%;
+}
+
+.footer-enlaces {
+    display: flex;
+    justify-content: center;
+    gap: 2%;
+    margin-bottom: 30px;
+}
+
+.footer-enlaces a {
+    color: #aaccaa;
+    text-decoration: none;
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+}
+
+.footer-enlaces a:hover {
+    color: white;
+}
+
+.footer-copyright p {
+    color: #fff;
+    font-size: 20px;
+    margin: 1%;
+    font-family: 'Manrope', sans-serif;
+}
+
+
+/*login*/
+.staff-login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh;
+}
+
+.login-container {
+    width: 400px;
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+.login-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    align-self: center;
+    font-weight: bold;
+}
+
+.login-container button {
+    width: 100%;
+    padding: 10px;
+    background-color: #0800a8;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Diseño Responsivo para dispositivos de celular */
+
+@media (max-width: 768px) {
+
+
+    .header {
+        height: 70px;
+        padding: 0 15px;
+    }
+
+    .logo img {
+        width: 95px;
+    }
+
+    .nav {
+        display: none;
+    }
+
+    .header-button {
+        display: block;
+    }
+
+    .header-button a {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+
+
+    .hero {
+        min-height: auto;
+
+        flex-direction: column;
+
+        padding: 40px 20px;
+
+        gap: 30px;
+    }
+
+    .hero-content {
+        width: 100%;
+        text-align: center;
+    }
+
+    .hero-content h1 {
+        font-size: 32px;
+        line-height: 1.2;
+
+        margin-bottom: 20px;
+    }
+
+    .hero-content p {
+        font-size: 15px;
+
+        max-width: 100%;
+
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 25px;
+    }
+
+
+
+    .hero-buttons {
+        justify-content: center;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+    .btn-primary,.btn-secondary {
+        width: 100%;
+
+        text-align: center;
+
+        padding: 12px 15px;
+    }
+
+    .hero-image {
+        width: 100%;
+    }
+
+    .hero-image img {
+        width: 100%;
+        height: 280px;
+
+        object-fit: cover;
+    }
+
+
+
+    .services-2 {
+        padding: 50px 20px;
+    }
+
+    .services-intro {
+        margin-top: 40px;
+        margin-bottom: 30px;
+    }
+
+    .services-intro h2 {
+        font-size: 24px;
+        line-height: 1.3;
+    }
+
+    .services-intro p {
+        font-size: 14px;
+    }
+
+
+
+    .service-cards {
+        flex-direction: column;
+
+        gap: 20px;
+    }
+
+    .service-card {
+        width: 100%;
+
+        min-height: auto;
+
+        padding: 25px 22px;
+    }
+
+    .service-card h3 {
+        font-size: 19px;
+    }
+
+    .service-card p {
+        font-size: 14px;
+    }
+
+
+
+    .sobre-nosotros {
+        flex-direction: column;
+
+        padding: 50px 20px;
+
+        gap: 30px;
+    }
+
+
+    .imagen-nosotros {
+        width: 100%;
+    }
+
+    .imagen-nosotros img {
+        width: 100%;
+
+        height: 350px;
+
+        object-fit: cover;
+    }
+
+
+
+    .contenido-nosotros {
+        width: 100%;
+    }
+
+    .contenido-nosotros h2 {
+        font-size: 27px;
+        line-height: 1.3;
+    }
+
+    .contenido-nosotros > p {
+        font-size: 15px;
+    }
+
+
+
+    .tarjetas-informativas {
+        flex-direction: column;
+
+        gap: 15px;
+    }
+
+    .tarjeta-informativa {
+        width: 100%;
+    }
+
+
+
+    .contacto {
+        padding: 50px 20px;
+    }
+
+    .contacto-titulo {
+        margin-bottom: 30px;
+    }
+
+    .contacto-titulo h2 {
+        font-size: 24px;
+    }
+
+    .contacto-titulo p {
+        font-size: 13px;
+    }
+
+
+
+    .contacto-contenido {
+        flex-direction: column;
+
+        gap: 20px;
+    }
+
+    .informacion-contacto {
+        width: 100%;
+
+        padding: 25px 20px;
+    }
+
+    .formulario-contacto {
+        width: 100%;
+
+        padding: 25px 20px;
+    }
+
+
+    .fila-formulario {
+        flex-direction: column;
+
+        gap: 15px;
+
+        margin-bottom: 15px;
+    }
+
+    .campo {
+        width: 100%;
+    }
+
+    .campo label {
+        font-size: 12px;
+    }
+
+    .campo input {
+        width: 100%;
+
+        height: 44px;
+    }
+
+    .campo textarea {
+        width: 100%;
+
+        height: 110px;
+    }
+
+    .formulario-contacto button {
+        width: 100%;
+
+        height: 45px;
+    }
+
+
+
+    .footer {
+        padding: 40px 20px 30px;
+    }
+
+    .footer-logo {
+        margin-bottom: 25px;
+    }
+
+    .footer-logo img {
+        width: 120px;
+    }
+
+    .footer-enlaces {
+        flex-direction: column;
+
+        align-items: center;
+
+        gap: 12px;
+
+        margin-bottom: 25px;
+    }
+
+    .footer-enlaces a {
+        font-size: 13px;
+    }
+
+    .footer-copyright p {
+        font-size: 13px;
+
+        line-height: 1.5;
+
+        margin: 0;
+    }
+
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('VETWEB - Portal Médico')}">
+    <title>VETWEB - Portal Médico</title>
+</head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <section class="staff-login">
+        <div class="login-container">
+            <h2>Portal médico</h2>
+            <form id="staffLoginForm">
+                <div class="mb-3">
+                    <label for="staff-email" class="form-label">Correo Electrónico</label>
+                    <input type="email" class="form-control" id="staff-email" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="staff-password" class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="staff-password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+            </form>
+        </div>
+    </section>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+    
+    <script>
+        document.getElementById('staffLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('staff-email').value;
+            const password = document.getElementById('staff-password').value;
+            
+            const result = await Auth.login(email, password);
+            if (result.success) {
+                Auth.redirectBasedOnRole(result.data.rol);
+            } else {
+                alert(result.message);
+            }
+        });
+    </script>
+</body>
+</html>

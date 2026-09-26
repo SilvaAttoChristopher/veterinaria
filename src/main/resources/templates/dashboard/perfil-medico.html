@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Mi Perfil | VetWeb')}">
+    <title>Mi Perfil | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="titulo-dashboard">
+                <h2>Mi Perfil</h2>
+                <p>Información profesional y horarios de atención.</p>
+            </div>
+
+            <section class="perfil-card">
+
+                <div class="perfil-header">
+                    <div class="perfil-usuario">
+                        <img th:src="@{/imagenes/medico.png}" alt="Veterinario">
+                        <div>
+                            <h3 id="perfilNombre">Cargando...</h3>
+                            <p id="perfilCorreo">-</p>
+                        </div>
+                    </div>
+                    <a th:href="@{/dashboard/editar-perfil-medico}" class="btn-editar">
+                        <i class="bi bi-pencil"></i>
+                        Editar Información
+                    </a>
+                </div>
+
+                <div class="perfil-contenido">
+                    <h3>Información Personal</h3>
+                    <div class="datos-grid">
+                        <div class="dato-perfil">
+                            <span>NOMBRES</span>
+                            <p id="campoNombres">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>APELLIDOS</span>
+                            <p id="campoApellidos">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>CORREO ELECTRÓNICO</span>
+                            <p id="campoCorreo">-</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <span>NÚMERO DE TELÉFONO</span>
+                            <p id="campoTelefono">-</p>
+                        </div>
+                        <div class="dato-perfil dato-completo">
+                            <span>ESPECIALIDAD</span>
+                            <p id="campoEspecialidad">-</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Sección de Horarios -->
+            <section class="perfil-card" style="margin-top: 20px;">
+                <div class="perfil-header">
+                    <h3 style="margin: 0;">Mis Horarios</h3>
+                    <a th:href="@{/dashboard/registrar-horario}" class="btn-editar">
+                        <i class="bi bi-plus-circle"></i>
+                        Agregar Horario
+                    </a>
+                </div>
+                <div class="perfil-contenido">
+                    <div id="listaHorarios">
+                        <!-- Se carga dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        const DIAS = {
+            1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves',
+            5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+        };
+
+        let usuarioActual = null;
+        let horarios = [];
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            usuarioActual = result.data;
+            document.getElementById('perfilNombre').textContent = `${usuarioActual.nombres} ${usuarioActual.apellidos}`;
+            document.getElementById('perfilCorreo').textContent = usuarioActual.correo || '';
+
+            document.getElementById('campoNombres').textContent = usuarioActual.nombres || '-';
+            document.getElementById('campoApellidos').textContent = usuarioActual.apellidos || '-';
+            document.getElementById('campoCorreo').textContent = usuarioActual.correo || '-';
+            document.getElementById('campoTelefono').textContent = usuarioActual.telefono || '-';
+            document.getElementById('campoEspecialidad').textContent = usuarioActual.especialidad || '-';
+
+            await cargarHorarios();
+        }
+
+        async function cargarHorarios() {
+            try {
+                const res = await fetch(`/api/horarios/veterinario/${usuarioActual.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                horarios = await res.json();
+                renderizarHorarios();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderizarHorarios() {
+            const cont = document.getElementById('listaHorarios');
+
+            if (horarios.length === 0) {
+                cont.innerHTML = '<p>No tienes horarios registrados</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="datos-grid">
+                    ${horarios.map(h => `
+                        <div class="dato-perfil">
+                            <span>${escapar(DIAS[h.diaSemana] || h.diaSemana)}</span>
+                            <p>${escapar((h.horaInicio || '').slice(0, 5))} — ${escapar((h.horaFin || '').slice(0, 5))}</p>
+                            <div class="acciones-editar" style="margin-top:8px;">
+                                <a href="/dashboard/editar-horario/${h.idHorario}" class="btn-cancelar">
+                                    Editar
+                                </a>
+                                <a href="#" class="btn-eliminar"
+                                    onclick="eliminarHorario(${h.idHorario}); return false;">
+                                    Eliminar
+                                </a>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function eliminarHorario(id) {
+            if (!confirm('¿Eliminar este horario de atención?')) return;
+
+            try {
+                const res = await fetch(`/api/horarios/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    await cargarHorarios();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo eliminar el horario');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

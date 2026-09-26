@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Detalle de Mascota | VetWeb')}">
+    <title>Detalle de Mascota | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="titulo-dashboard">
+
+                <a th:href="@{/dashboard/mascotas}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a mis mascotas
+                </a>
+
+                <h2 id="tituloMascota">Expediente</h2>
+
+                <p>Información general, cartilla de vacunación e historial clínico.</p>
+
+            </div>
+
+            <!-- informacion general -->
+
+            <section class="perfil-card">
+
+                <div class="perfil-header">
+                    <h3>Información General</h3>
+                    <div>
+                        <a id="btnEditar" class="btn-editar" href="#">
+                            <i class="bi bi-pencil"></i>
+                            Editar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="perfil-contenido">
+                    <div class="datos-grid" id="datosMascota">
+                        <div class="dato-perfil">
+                            <strong>Nombre</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Especie</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Raza</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Sexo</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Fecha de Nacimiento</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Edad</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Peso</strong>
+                            <p>—</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Observaciones</strong>
+                            <p>—</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- cartilla -->
+
+            <section class="perfil-card">
+
+                <div class="perfil-header">
+                    <h3>Cartilla de Vacunación</h3>
+                    <div>
+                        <a th:href="@{/dashboard/cartilla}" class="btn-editar">
+                            <i class="bi bi-capsule"></i>
+                            Gestionar Cartilla
+                        </a>
+                    </div>
+                </div>
+
+                <div class="perfil-contenido">
+                    <div id="contenidoCartilla">
+                        <p>Cargando cartilla...</p>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- historial -->
+
+            <section class="perfil-card">
+
+                <div class="perfil-header">
+                    <h3>Historial de Atención</h3>
+                </div>
+
+                <div class="perfil-contenido">
+                    <div id="contenidoHistorial">
+                        <p>Cargando historial...</p>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const MASCOTA_ID = [[${idMascota}]];
+        /*]]>*/
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        function calcularEdad(fechaNacimiento) {
+            if (!fechaNacimiento) return '—';
+            const nac = new Date(fechaNacimiento);
+            if (isNaN(nac.getTime())) return '—';
+            const hoy = new Date();
+            let anios = hoy.getFullYear() - nac.getFullYear();
+            let meses = hoy.getMonth() - nac.getMonth();
+            if (meses < 0) {
+                anios -= 1;
+                meses += 12;
+            }
+            if (anios > 0) return `${anios} año${anios === 1 ? '' : 's'}`;
+            if (meses > 0) return `${meses} mes${meses === 1 ? '' : 'es'}`;
+            return 'Menos de 1 mes';
+        }
+
+        async function cargar() {
+            document.getElementById('btnEditar').href = `/dashboard/editar-mascota/${MASCOTA_ID}`;
+
+            await Promise.all([cargarMascota(), cargarCartilla(), cargarHistorial()]);
+        }
+
+        async function cargarMascota() {
+            try {
+                const res = await fetch(`/api/mascotas/${MASCOTA_ID}`, { credentials: 'same-origin' });
+                if (!res.ok) {
+                    document.getElementById('tituloMascota').textContent = 'Mascota no encontrada';
+                    return;
+                }
+
+                const m = await res.json();
+                document.getElementById('tituloMascota').textContent = m.nombre;
+
+                const datos = [
+                    ['Nombre', m.nombre],
+                    ['Especie', m.especie],
+                    ['Raza', m.raza || 'No especificada'],
+                    ['Sexo', m.sexo === 'M' ? 'Macho' : m.sexo === 'F' ? 'Hembra' : 'No especificado'],
+                    ['Fecha de Nacimiento', m.fechaNacimiento || 'No especificada'],
+                    ['Edad', calcularEdad(m.fechaNacimiento)],
+                    ['Peso', m.peso != null ? `${m.peso} kg` : 'No especificado'],
+                    ['Observaciones', m.observaciones || 'Ninguna']
+                ];
+
+                document.getElementById('datosMascota').innerHTML = datos.map(([k, v]) => `
+                    <div class="dato-perfil">
+                        <strong>${k}</strong>
+                        <p>${v}</p>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarCartilla() {
+            const cont = document.getElementById('contenidoCartilla');
+            try {
+                const res = await fetch(`/api/cartillas/mascota/${MASCOTA_ID}`, { credentials: 'same-origin' });
+
+                if (!res.ok) {
+                    cont.innerHTML = '<p>Esta mascota aún no tiene cartilla de vacunación registrada.</p>';
+                    return;
+                }
+
+                const cartilla = await res.json();
+                const vres = await fetch(`/api/vacunaciones/cartilla/${cartilla.idCartilla}`, {
+                    credentials: 'same-origin'
+                });
+                const vacunaciones = vres.ok ? await vres.json() : [];
+
+                if (vacunaciones.length === 0) {
+                    cont.innerHTML = `<p>Cartilla creada el ${cartilla.fechaCreacion || '—'}. Sin vacunaciones registradas.</p>`;
+                    return;
+                }
+
+                cont.innerHTML = `
+                    <div class="datos-grid">
+                        ${vacunaciones.map(v => `
+                            <div class="dato-perfil">
+                                <strong>${v.vacuna?.nombre || 'Vacuna'}</strong>
+                                <p>${v.fechaAplicacion || '—'}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                cont.innerHTML = '<p>Error al cargar la cartilla.</p>';
+            }
+        }
+
+        async function cargarHistorial() {
+            const cont = document.getElementById('contenidoHistorial');
+            try {
+                const res = await fetch(`/api/historial/mascota/${MASCOTA_ID}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) {
+                    cont.innerHTML = '<p>Sin historial registrado.</p>';
+                    return;
+                }
+
+                const historial = await res.json();
+
+                if (historial.length === 0) {
+                    cont.innerHTML = '<p>Sin historial registrado.</p>';
+                    return;
+                }
+
+                cont.innerHTML = historial.map(h => `
+                    <div class="dato-perfil">
+                        <strong>${h.fechaAtencion || '—'}</strong>
+                        <p>${h.motivo || 'Sin motivo registrado'}</p>
+                        ${h.diagnostico ? `<p><em>Diagnóstico:</em> ${h.diagnostico}</p>` : ''}
+                        ${h.tratamiento ? `<p><em>Tratamiento:</em> ${h.tratamiento}</p>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) {
+                cont.innerHTML = '<p>Error al cargar el historial.</p>';
+            }
+        }
+    </script>
+
+</body>
+
+</html>

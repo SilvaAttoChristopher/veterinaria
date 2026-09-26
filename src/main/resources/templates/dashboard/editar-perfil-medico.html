@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Editar Perfil | VetWeb')}">
+    <title>Editar Perfil | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="titulo-configuracion">
+
+                <a th:href="@{/dashboard/perfil-medico}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver al perfil
+                </a>
+
+                <h2>Configuración de Perfil</h2>
+
+                <p>
+                    Actualiza tu información personal y los datos de tu consultorio.
+                </p>
+
+            </div>
+
+            <section class="editar-perfil-card">
+
+                <form id="formEditarPerfil" onsubmit="return false;">
+
+                    <!-- foto -->
+
+                    <div class="editar-foto">
+
+                        <div class="foto-perfil-editar">
+
+                            <img th:src="@{/imagenes/medico.png}" alt="Foto de perfil" id="fotoPerfil">
+
+                            <span class="icono-editar-foto">
+                                <i class="bi bi-pencil-fill"></i>
+                            </span>
+
+                        </div>
+
+                        <div class="foto-informacion">
+
+                            <strong>Foto de Perfil</strong>
+
+                            <span>
+                                JPG, GIF O PNG. MAX TAMAÑO DE 800K
+                            </span>
+
+                            <div class="botones-foto">
+
+                                <button type="button" class="btn-subir" onclick="document.getElementById('inputFoto').click()">
+                                    Subir Nueva
+                                </button>
+
+                                <button type="button" class="btn-eliminar" onclick="restablecerFoto()">
+                                    Restablecer
+                                </button>
+
+                                <input type="file" id="inputFoto" accept="image/png,image/jpeg,image/gif" hidden>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <!-- informacion personal -->
+
+                    <div class="formulario-editar-grid">
+
+                        <div class="campo-editar">
+                            <label for="nombres">NOMBRES</label>
+                            <input type="text" id="nombres" name="nombres" required>
+                        </div>
+
+                        <div class="campo-editar">
+                            <label for="apellidos">APELLIDOS</label>
+                            <input type="text" id="apellidos" name="apellidos" required>
+                        </div>
+
+                        <div class="campo-editar">
+                            <label for="correo">CORREO ELECTRÓNICO</label>
+                            <input type="email" id="correo" name="correo">
+                        </div>
+
+                        <div class="campo-editar">
+                            <label for="telefono">NÚMERO DE TELÉFONO</label>
+                            <input type="tel" id="telefono" name="telefono">
+                        </div>
+
+                        <div class="campo-editar">
+                            <label for="username">USUARIO</label>
+                            <input type="text" id="username" name="username" class="input-bloqueado" readonly>
+                        </div>
+
+                        <div class="campo-editar">
+                            <label for="direccion">DIRECCIÓN</label>
+                            <input type="text" id="direccion" name="direccion">
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <!-- informacion clinica -->
+
+                    <div class="titulo-informacion-clinica">
+
+                        <i class="bi bi-heart-pulse"></i>
+
+                        <h3>Información Clínica</h3>
+
+                    </div>
+
+                    <div class="formulario-clinica-grid">
+
+                        <div class="campo-editar campo-editar-completo">
+                            <label for="especialidad">ESPECIALIDAD</label>
+                            <input type="text" id="especialidad" name="especialidad"
+                                placeholder="Ej. Traumatología y Neurología">
+                        </div>
+
+                        <div class="campo-editar campo-editar-completo">
+                            <label for="direccionClinica">DIRECCIÓN DE LA CLÍNICA</label>
+                            <input type="text" id="direccionClinica" name="direccionClinica"
+                                placeholder="Ej. Av. Canadá 3660, San Luis">
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <!-- botones -->
+
+                    <div class="acciones-editar">
+
+                        <a th:href="@{/dashboard/perfil-medico}" class="btn-cancelar">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar" id="btnGuardar" onclick="guardarPerfil()">
+                            <i class="bi bi-floppy"></i>
+                            Guardar Cambios
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let fotoSeleccionada = null;
+        const FOTO_POR_DEFECTO = '/imagenes/medico.png';
+
+        document.addEventListener('DOMContentLoaded', cargarFormulario);
+
+        async function cargarFormulario() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            const u = result.data;
+
+            document.getElementById('nombres').value = u.nombres || '';
+            document.getElementById('apellidos').value = u.apellidos || '';
+            document.getElementById('correo').value = u.correo || '';
+            document.getElementById('telefono').value = u.telefono || '';
+            document.getElementById('direccion').value = u.direccion || '';
+            document.getElementById('username').value = u.username || '';
+            document.getElementById('especialidad').value = u.especialidad || '';
+
+            try {
+                const res = await fetch(`/api/veterinarios/${u.id}`, { credentials: 'same-origin' });
+                if (res.ok) {
+                    const vet = await res.json();
+                    document.getElementById('especialidad').value = vet.especialidad || '';
+                }
+            } catch (e) {
+                /* especialidad ya taken */
+            }
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'inputFoto') {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 800 * 1024) {
+                        alert('La imagen supera el máximo de 800K');
+                        e.target.value = '';
+                        return;
+                    }
+                    fotoSeleccionada = file;
+                    document.getElementById('fotoPerfil').src = URL.createObjectURL(file);
+                }
+            }
+        });
+
+        function restablecerFoto() {
+            fotoSeleccionada = null;
+            document.getElementById('inputFoto').value = '';
+            document.getElementById('fotoPerfil').src = FOTO_POR_DEFECTO;
+        }
+
+        async function guardarPerfil() {
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const result = await Auth.getCurrentUser();
+            if (!result.success) {
+                alert('Sesión expirada');
+                btn.disabled = false;
+                return;
+            }
+
+            const payload = {
+                nombres: document.getElementById('nombres').value.trim(),
+                apellidos: document.getElementById('apellidos').value.trim(),
+                correo: document.getElementById('correo').value.trim(),
+                telefono: document.getElementById('telefono').value.trim(),
+                direccion: document.getElementById('direccion').value.trim(),
+                especialidad: document.getElementById('especialidad').value.trim()
+            };
+
+            try {
+                const res = await fetch(`/api/veterinarios/${result.data.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    alert('Perfil actualizado correctamente');
+                    window.location.href = '/dashboard/perfil-medico';
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al actualizar el perfil');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

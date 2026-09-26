@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Cartilla de Vacunación | VetWeb')}">
+    <title>Cartilla de Vacunación | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Cartilla de Vacunación</h2>
+                    <p>Historial de vacunación de tus mascotas.</p>
+                </div>
+                <a th:href="@{/dashboard/registrar-vacunacion}" class="btn-nueva-mascota" id="btnRegistrarVacunacion" hidden>
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Vacunación
+                </a>
+            </div>
+
+            <!-- selector de mascota -->
+            <div class="busqueda-panel">
+                <i class="bi bi-paw-fill"></i>
+                <select id="selectMascota" onchange="cargarCartilla()">
+                    <option value="">Seleccionar mascota...</option>
+                </select>
+            </div>
+
+            <!-- información de la cartilla -->
+            <section class="perfil-card" id="cartillaInfo" hidden>
+                <div class="perfil-header">
+                    <h3 style="margin: 0;">Cartilla — <span id="cartillaMascotaNombre">-</span></h3>
+                    <span class="estado-tabla estable">Activa</span>
+                </div>
+                <div class="perfil-contenido">
+                    <div class="datos-grid">
+                        <div class="dato-perfil">
+                            <span>FECHA DE CREACIÓN</span>
+                            <p id="cartillaFecha">-</p>
+                        </div>
+                        <div class="dato-perfil dato-completo">
+                            <span>OBSERVACIONES</span>
+                            <p id="cartillaObservaciones">-</p>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top:20px;">Vacunaciones</h3>
+                    <div class="datos-grid" id="listaVacunaciones">
+                        <!-- Se carga dinámicamente -->
+                    </div>
+                </div>
+            </section>
+
+            <section class="perfil-card" id="sinCartilla" hidden>
+                <div class="perfil-contenido">
+                    <p>Esta mascota no tiene cartilla de vacunación.</p>
+                    <button type="button" class="btn-guardar" onclick="crearCartilla()">
+                        Crear Cartilla
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let mascotas = [];
+        let cartillaActual = null;
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            try {
+                const res = await fetch(`/api/mascotas/cliente/${result.data.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+
+                mascotas = await res.json();
+                const sel = document.getElementById('selectMascota');
+                sel.innerHTML = '<option value="">Seleccionar mascota...</option>' +
+                    mascotas.map(m => `<option value="${m.idMascota}">${m.nombre}</option>`).join('');
+
+                if (mascotas.length === 1) {
+                    sel.value = mascotas[0].idMascota;
+                    cargarCartilla();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function cargarCartilla() {
+            const mascotaId = document.getElementById('selectMascota').value;
+            const info = document.getElementById('cartillaInfo');
+            const sinCartilla = document.getElementById('sinCartilla');
+            const btn = document.getElementById('btnRegistrarVacunacion');
+
+            info.hidden = true;
+            sinCartilla.hidden = true;
+            btn.hidden = true;
+
+            if (!mascotaId) return;
+
+            try {
+                const res = await fetch(`/api/cartillas/mascota/${mascotaId}`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!res.ok) {
+                    sinCartilla.hidden = false;
+                    return;
+                }
+
+                cartillaActual = await res.json();
+                info.hidden = false;
+                btn.hidden = false;
+
+                const mascota = mascotas.find(m => m.idMascota == mascotaId);
+                document.getElementById('cartillaMascotaNombre').textContent = mascota ? mascota.nombre : '-';
+                document.getElementById('cartillaFecha').textContent = cartillaActual.fechaCreacion || '-';
+                document.getElementById('cartillaObservaciones').textContent = cartillaActual.observaciones || 'Ninguna';
+
+                await cargarVacunaciones(cartillaActual.idCartilla);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarVacunaciones(cartillaId) {
+            const cont = document.getElementById('listaVacunaciones');
+            try {
+                const res = await fetch(`/api/vacunaciones/cartilla/${cartillaId}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) {
+                    cont.innerHTML = '<p>Sin vacunaciones registradas</p>';
+                    return;
+                }
+
+                const vacunaciones = await res.json();
+
+                if (vacunaciones.length === 0) {
+                    cont.innerHTML = '<p>Sin vacunaciones registradas</p>';
+                    return;
+                }
+
+                cont.innerHTML = `
+                    <div class="datos-grid">
+                        ${vacunaciones.map(v => `
+                            <div class="dato-perfil">
+                                <span>${escapar(v.vacuna?.nombre || 'Vacuna')}</span>
+                                <p>${escapar(v.fechaAplicacion || '-')}</p>
+                                <p><em>Próxima dosis:</em> ${escapar(v.proximaDosis || '—')}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (e) {
+                cont.innerHTML = '<p>Error al cargar las vacunaciones</p>';
+            }
+        }
+
+        async function crearCartilla() {
+            const mascotaId = document.getElementById('selectMascota').value;
+            if (!mascotaId) return;
+
+            try {
+                const res = await fetch('/api/cartillas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mascota: { idMascota: parseInt(mascotaId, 10) } }),
+                    credentials: 'same-origin'
+                });
+
+                if (res.ok) {
+                    await cargarCartilla();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo crear la cartilla');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

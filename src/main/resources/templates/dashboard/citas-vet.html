@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Mis Citas | VetWeb')}">
+    <title>Mis Citas | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-citas">
+
+                <div>
+                    <h2>Mis Citas Asignadas</h2>
+                    <p>Gestiona las citas de tus pacientes.</p>
+                </div>
+
+            </div>
+
+            <div class="filtros-citas">
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-calendar3"></i>
+                    <input type="date" id="filtroFecha" onchange="filtrarCitas()">
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-funnel"></i>
+                    <select id="filtroEstado" onchange="filtrarCitas()">
+                        <option value="">Todos los estados</option>
+                        <option value="PROGRAMADA">Programada</option>
+                        <option value="ATENDIDA">Atendida</option>
+                        <option value="CANCELADA">Cancelada</option>
+                        <option value="NO_ASISTIO">No Asistió</option>
+                    </select>
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscador"
+                        placeholder="Buscar mascota o motivo..."
+                        oninput="filtrarCitas()">
+                </div>
+
+            </div>
+
+            <section class="tabla-citas" id="tablaCitas">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let citas = [];
+        let usuarioActual = null;
+
+        const ESTADOS = {
+            'PROGRAMADA': { clase: 'pendiente', texto: 'Programada' },
+            'ATENDIDA': { clase: 'atendida', texto: 'Atendida' },
+            'CANCELADA': { clase: 'cancelada', texto: 'Cancelada' },
+            'NO_ASISTIO': { clase: 'cancelada', texto: 'No Asistió' }
+        };
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+            usuarioActual = result.data;
+            await cargarCitas();
+        }
+
+        async function cargarCitas() {
+            try {
+                const res = await fetch('/api/citas', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const todas = await res.json();
+                citas = todas.filter(c => c.veterinario?.idUsuario === usuarioActual.id);
+                filtrarCitas();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function filtrarCitas() {
+            const fecha = document.getElementById('filtroFecha').value;
+            const estado = document.getElementById('filtroEstado').value;
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+
+            let lista = citas;
+
+            if (fecha) {
+                lista = lista.filter(c => c.fecha === fecha);
+            }
+            if (estado) {
+                lista = lista.filter(c => c.estado === estado);
+            }
+            if (q) {
+                lista = lista.filter(c =>
+                    (c.mascota?.nombre || '').toLowerCase().includes(q) ||
+                    (c.motivo || '').toLowerCase().includes(q) ||
+                    (c.mascota?.cliente?.nombres || '').toLowerCase().includes(q)
+                );
+            }
+
+            renderizar(lista);
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaCitas');
+
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay citas para mostrar</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-citas-header">
+                    <span>MASCOTA / FECHA</span>
+                    <span>SERVICIO</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(c => {
+                    const est = ESTADOS[c.estado] || { clase: 'pendiente', texto: c.estado };
+                    const dueno = [c.mascota?.cliente?.nombres, c.mascota?.cliente?.apellidos]
+                        .filter(Boolean).join(' ');
+
+                    return `
+                        <div class="fila-cita">
+                            <div class="nombre-cita-mascota">
+                                <div class="icono-mascota">
+                                    <i class="bi bi-paw-fill"></i>
+                                </div>
+                                <div>
+                                    <strong>${escapar(c.mascota?.nombre || 'Mascota')}</strong>
+                                    <span>${escapar(c.fecha)} · ${escapar((c.hora || '').slice(0, 5))}</span>
+                                    ${dueno ? `<span>Dueño: ${escapar(dueno)}</span>` : ''}
+                                </div>
+                            </div>
+                            <p>${escapar(c.servicio?.nombre || '-')}</p>
+                            <div>
+                                <span class="estado-cita ${est.clase}">${est.texto}</span>
+                            </div>
+                            <div class="acciones-cita">
+                                <a href="/dashboard/mascota/${c.mascota?.idMascota}" class="btn-cita-secundario">
+                                    Ver Mascota
+                                </a>
+                                ${c.estado === 'PROGRAMADA' ? `
+                                    <a href="/dashboard/registrar-atencion/${c.idCita}" class="btn-guardar">
+                                        Atender
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+    </script>
+
+</body>
+
+</html>

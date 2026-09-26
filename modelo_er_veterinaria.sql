@@ -1,0 +1,302 @@
+-- ============================================================
+-- MODELO ER - SISTEMA DE GESTIÓN VETERINARIA
+-- PostgreSQL
+--
+-- Herencia: USUARIO es tabla padre, CLIENTE y VETERINARIO
+-- son hijos con JOINED inheritance.
+--
+-- 1) USUARIO → CLIENTE (hijo)
+-- 2) USUARIO → VETERINARIO (hijo)
+-- 3) MASCOTA 1:1 CARTILLA
+-- 4) VETERINARIO 1:N HORARIO
+-- 5) CARTILLA 1:N VACUNACION y VACUNA 1:N VACUNACION
+-- 6) BOLETA 1:N DETALLE_BOLETA y SERVICIO 1:N DETALLE_BOLETA
+-- 7) CITA-SERVICIO: SERVICIO 1:N CITA
+-- ============================================================
+
+-- Rol
+CREATE TABLE rol (
+    id_rol       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre       VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Permiso
+CREATE TABLE permiso (
+    id_permiso    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre        VARCHAR(100) NOT NULL UNIQUE,
+    descripcion   VARCHAR(200)
+);
+
+-- Rol-Permiso (N:M)
+CREATE TABLE rol_permiso (
+    id_rol      BIGINT NOT NULL,
+    id_permiso  BIGINT NOT NULL,
+    PRIMARY KEY (id_rol, id_permiso),
+    CONSTRAINT fk_rp_rol
+        FOREIGN KEY (id_rol) REFERENCES rol(id_rol)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_rp_permiso
+        FOREIGN KEY (id_permiso) REFERENCES permiso(id_permiso)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Usuario (tabla padre - herencia JOINED)
+CREATE TABLE usuario (
+    id_usuario     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username       VARCHAR(50) NOT NULL UNIQUE,
+    password       VARCHAR(200) NOT NULL,
+    nombres        VARCHAR(80) NOT NULL,
+    apellidos      VARCHAR(100) NOT NULL,
+    telefono       VARCHAR(20),
+    correo         VARCHAR(120),
+    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    estado         VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
+    id_rol         BIGINT NOT NULL,
+    CONSTRAINT fk_usuario_rol
+        FOREIGN KEY (id_rol) REFERENCES rol(id_rol)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- Cliente (hijo de Usuario)
+CREATE TABLE cliente (
+    id_cliente  BIGINT PRIMARY KEY,
+    dni         VARCHAR(20) NOT NULL UNIQUE,
+    CONSTRAINT fk_cliente_usuario
+        FOREIGN KEY (id_cliente) REFERENCES usuario(id_usuario)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Veterinario (hijo de Usuario)
+CREATE TABLE veterinario (
+    id_veterinario  BIGINT PRIMARY KEY,
+    especialidad    VARCHAR(100),
+    CONSTRAINT fk_veterinario_usuario
+        FOREIGN KEY (id_veterinario) REFERENCES usuario(id_usuario)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Mascota
+CREATE TABLE mascota (
+    id_mascota          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_cliente          BIGINT NOT NULL,
+    nombre              VARCHAR(80) NOT NULL,
+    especie             VARCHAR(40) NOT NULL,
+    raza                VARCHAR(80),
+    sexo                CHAR(1) CHECK (sexo IN ('M', 'F')),
+    fecha_nacimiento    DATE,
+    CONSTRAINT fk_mascota_cliente
+        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE INDEX idx_mascota_cliente ON mascota(id_cliente);
+
+-- Cartilla
+CREATE TABLE cartilla (
+    id_cartilla       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_mascota        BIGINT NOT NULL UNIQUE,
+    fecha_creacion    DATE NOT NULL DEFAULT CURRENT_DATE,
+    observaciones     TEXT,
+    CONSTRAINT fk_cartilla_mascota
+        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Vacuna
+CREATE TABLE vacuna (
+    id_vacuna       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre          VARCHAR(100) NOT NULL UNIQUE,
+    descripcion     TEXT,
+    vigente         BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+-- Vacunación
+CREATE TABLE vacunacion (
+    id_vacunacion    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_cartilla      BIGINT NOT NULL,
+    id_vacuna        BIGINT NOT NULL,
+    fecha_aplicacion DATE NOT NULL,
+    proxima_dosis    DATE,
+    observaciones    TEXT,
+    CONSTRAINT fk_vacunacion_cartilla
+        FOREIGN KEY (id_cartilla) REFERENCES cartilla(id_cartilla)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_vacunacion_vacuna
+        FOREIGN KEY (id_vacuna) REFERENCES vacuna(id_vacuna)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_vacunacion_fechas
+        CHECK (proxima_dosis IS NULL OR proxima_dosis >= fecha_aplicacion)
+);
+
+CREATE INDEX idx_vacunacion_cartilla ON vacunacion(id_cartilla);
+CREATE INDEX idx_vacunacion_vacuna ON vacunacion(id_vacuna);
+
+-- Horario
+CREATE TABLE horario (
+    id_horario      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_veterinario  BIGINT NOT NULL,
+    dia_semana      SMALLINT NOT NULL,
+    hora_inicio     TIME NOT NULL,
+    hora_fin        TIME NOT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT fk_horario_veterinario
+        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_horario_dia
+        CHECK (dia_semana BETWEEN 1 AND 7),
+    CONSTRAINT chk_horario_horas
+        CHECK (hora_fin > hora_inicio)
+);
+
+CREATE INDEX idx_horario_veterinario ON horario(id_veterinario);
+
+-- Historial
+CREATE TABLE historial (
+    id_historial      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_mascota        BIGINT NOT NULL,
+    id_veterinario    BIGINT NOT NULL,
+    fecha_atencion    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    motivo            VARCHAR(200),
+    diagnostico       TEXT,
+    tratamiento       TEXT,
+    observaciones     TEXT,
+    CONSTRAINT fk_historial_mascota
+        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_historial_veterinario
+        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+CREATE INDEX idx_historial_mascota ON historial(id_mascota);
+CREATE INDEX idx_historial_veterinario ON historial(id_veterinario);
+CREATE INDEX idx_historial_fecha ON historial(fecha_atencion);
+
+-- Servicio
+CREATE TABLE servicio (
+    id_servicio     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre          VARCHAR(100) NOT NULL UNIQUE,
+    descripcion     TEXT,
+    precio          NUMERIC(10,2) NOT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_servicio_precio CHECK (precio >= 0)
+);
+
+-- Cita
+CREATE TABLE cita (
+    id_cita          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_mascota       BIGINT NOT NULL,
+    id_veterinario   BIGINT NOT NULL,
+    id_servicio      BIGINT NOT NULL,
+    fecha            DATE NOT NULL,
+    hora             TIME NOT NULL,
+    estado           VARCHAR(20) NOT NULL DEFAULT 'PROGRAMADA',
+    motivo           VARCHAR(200),
+    CONSTRAINT fk_cita_mascota
+        FOREIGN KEY (id_mascota) REFERENCES mascota(id_mascota)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_cita_veterinario
+        FOREIGN KEY (id_veterinario) REFERENCES veterinario(id_veterinario)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_cita_servicio
+        FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_cita_estado
+        CHECK (estado IN ('PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_ASISTIO')),
+    CONSTRAINT uq_cita_veterinario_fecha_hora
+        UNIQUE (id_veterinario, fecha, hora)
+);
+
+CREATE INDEX idx_cita_mascota ON cita(id_mascota);
+CREATE INDEX idx_cita_veterinario ON cita(id_veterinario);
+CREATE INDEX idx_cita_servicio ON cita(id_servicio);
+CREATE INDEX idx_cita_fecha ON cita(fecha);
+
+-- Boleta
+CREATE TABLE boleta (
+    id_boleta        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_cliente       BIGINT NOT NULL,
+    fecha_emision    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    subtotal         NUMERIC(10,2) NOT NULL DEFAULT 0,
+    igv              NUMERIC(10,2) NOT NULL DEFAULT 0,
+    total            NUMERIC(10,2) NOT NULL DEFAULT 0,
+    estado           VARCHAR(20) NOT NULL DEFAULT 'EMITIDA',
+    CONSTRAINT fk_boleta_cliente
+        FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_boleta_montos
+        CHECK (subtotal >= 0 AND igv >= 0 AND total >= 0),
+    CONSTRAINT chk_boleta_estado
+        CHECK (estado IN ('EMITIDA', 'ANULADA', 'PAGADA', 'PENDIENTE'))
+);
+
+CREATE INDEX idx_boleta_cliente ON boleta(id_cliente);
+CREATE INDEX idx_boleta_fecha ON boleta(fecha_emision);
+
+-- Detalle Boleta
+CREATE TABLE detalle_boleta (
+    id_detalle_boleta BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_boleta         BIGINT NOT NULL,
+    id_servicio       BIGINT NOT NULL,
+    cantidad          INTEGER NOT NULL DEFAULT 1,
+    precio_unitario   NUMERIC(10,2) NOT NULL,
+    subtotal          NUMERIC(10,2) NOT NULL,
+    CONSTRAINT fk_detalle_boleta_boleta
+        FOREIGN KEY (id_boleta) REFERENCES boleta(id_boleta)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_detalle_boleta_servicio
+        FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_detalle_cantidad CHECK (cantidad > 0),
+    CONSTRAINT chk_detalle_precio CHECK (precio_unitario >= 0),
+    CONSTRAINT chk_detalle_subtotal CHECK (subtotal >= 0)
+);
+
+CREATE INDEX idx_detalle_boleta_boleta ON detalle_boleta(id_boleta);
+CREATE INDEX idx_detalle_boleta_servicio ON detalle_boleta(id_servicio);
+
+-- Notificación
+CREATE TABLE notificacion (
+    id_notificacion   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_usuario        BIGINT NOT NULL,
+    tipo              VARCHAR(30) NOT NULL,
+    mensaje           TEXT NOT NULL,
+    fecha             TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    estado_leida      BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT fk_notificacion_usuario
+        FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- ============================================================
+-- NOTAS DE DISEÑO
+-- ============================================================
+-- 1. USUARIO es la tabla padre de herencia JOINED.
+--    CLIENTE y VETERINARIO comparten campos base (nombres,
+--    apellidos, telefono, correo, fecha_registro, estado).
+--
+-- 2. CLIENTE agrega: dni (UNIQUE).
+--    VETERINARIO agrega: especialidad.
+--
+-- 3. La tabla CARTILLA queda en relación 1:1 con MASCOTA
+--    mediante UNIQUE(id_mascota).
+--
+-- 4. HORARIO queda en relación 1:N con VETERINARIO.
+--
+-- 5. VACUNACION permite mantener el historial de aplicaciones
+--    de vacunas y las fechas de próxima dosis.
+--
+-- 6. HISTORIAL registra la atención de una mascota por un
+--    veterinario.
+--
+-- 7. CITA-SERVICIO NO se normaliza a una tabla intermedia,
+--    por petición expresa, y se conserva como FK directa.
+--
+-- 8. BOLETA-SERVICIO sí se normaliza mediante DETALLE_BOLETA
+--    para permitir varios servicios en una misma boleta.
+--
+-- 9. ROL determina el tipo de usuario:
+--    CLIENTE → tabla cliente
+--    VETERINARIO → tabla veterinario
+--    ADMIN → solo tabla usuario
+-- ============================================================

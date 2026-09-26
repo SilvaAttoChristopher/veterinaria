@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('VETWEB')}">
+    <title>VETWEB</title>
+</head>
+<body>
+    <header th:replace="~{fragments/layout :: header}"></header>
+
+    <!-- Login Modal -->
+    <div th:replace="~{fragments/layout :: loginModal}"></div>
+
+    <!-- Register Modal -->
+    <div th:replace="~{fragments/layout :: registerModal}"></div>
+
+    <!-- ================= BODY ================= -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>
+                Clínica veterinaria N°1 en<br>
+                casos complejos
+            </h1>
+            <p>
+                Atendemos casos complejos con un equipo especializado y
+                tecnología avanzada para brindar un enfoque personalizado y
+                devolverle a tu mascota movilidad, bienestar y calidad de vida.
+            </p>
+            <div class="hero-buttons">
+                <a href="#contacto" class="btn-primary">
+                    Agendar cita
+                </a>
+                <a href="#servicios" class="btn-secondary">
+                    Conoce nuestros servicios
+                </a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img th:src="@{/imagenes/perro1.jpg}" alt="Perro recibiendo atención veterinaria">
+        </div>
+    </section>
+
+    <section class="services-2" id="servicios">
+        <div class="services-intro">
+            <h2>TRAUMATOLOGÍA, NEUROLOGÍA Y CIRUGÍAS ESPECIALIZADAS</h2>
+            <p>Conoce nuestros servicios para tu mascota. Un diagnóstico preciso requiere de una revisión completa.</p>
+        </div>
+        <div class="service-cards">
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="bi bi-heart-pulse"></i>
+                </div>
+                <h3>Consulta Traumatológica y Neurológica</h3>
+                <p>Contamos con traumatología y neurología todos los días de atención.</p>
+                <a href="#contacto">Haz clic aquí →</a>
+            </div>
+            <div class="service-card">
+                <div class="service-icon">
+                    <i class="bi bi-hospital"></i>
+                </div>
+                <h3>Consulta Quirúrgica</h3>
+                <p>Si tu mascota tiene exámenes previos, o necesita de una cirugía.</p>
+                <a href="#contacto">Haz clic aquí →</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="sobre-nosotros" id="nosotros">
+        <div class="imagen-nosotros">
+            <img th:src="@{/imagenes/perro2.jpg}" alt="Atención veterinaria especializada">
+        </div>
+        <div class="contenido-nosotros">
+            <h2><strong>12 AÑOS</strong> de compromiso con la salud de las mascotas</h2>
+            <p>
+                Somos especialistas en traumatología, neurología y ortopedia
+                veterinaria. Realizamos cirugías de alta y mediana complejidad,
+                además de ofrecer servicios de fisioterapia y rehabilitación
+                para una recuperación integral.
+            </p>
+            <div class="tarjetas-informativas">
+                <div class="tarjeta-informativa">
+                    <div class="icono-informativo">
+                        <i class="bi bi-clipboard2-pulse"></i>
+                    </div>
+                    <h3>Atención Integral</h3>
+                    <p>Diagnóstico preciso y revisión completa.</p>
+                </div>
+                <div class="tarjeta-informativa">
+                    <div class="icono-informativo">
+                        <i class="bi bi-heart-fill"></i>
+                    </div>
+                    <h3>Pacientes Recuperados</h3>
+                    <p>Miles de casos de éxito.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="contacto" id="contacto">
+        <div class="contacto-titulo">
+            <h2>TE INVITAMOS A CONOCERNOS</h2>
+            <p>Aquí nos encontramos</p>
+        </div>
+        <div class="contacto-contenido">
+            <div class="informacion-contacto">
+                <h3>Información de Contacto</h3>
+                <div class="dato-contacto">
+                    <i class="bi bi-geo-alt-fill icono"></i>
+                    <div>
+                        <strong>Dirección</strong>
+                        <p>Av. Canadá 3660 San Luis.</p>
+                    </div>
+                </div>
+                <div class="dato-contacto">
+                    <i class="bi bi-clock-fill icono"></i>
+                    <div>
+                        <strong>Horario</strong>
+                        <p>Lunes a Viernes de 7:00 AM - 5:00 PM<br>Sábados 7:00 AM - 12:00 PM</p>
+                    </div>
+                </div>
+                <div class="dato-contacto">
+                    <i class="bi bi-telephone-fill icono"></i>
+                    <div>
+                        <strong>Teléfonos</strong>
+                        <p>+51 902 024 073<br>+51 950 757 605</p>
+                    </div>
+                </div>
+            </div>
+            <div class="formulario-contacto">
+                <h3>Nos comunicamos contigo</h3>
+                <form>
+                    <div class="fila-formulario">
+                        <div class="campo">
+                            <label for="contact-nombre">Nombre del dueño</label>
+                            <input type="text" id="contact-nombre" name="nombre">
+                        </div>
+                        <div class="campo">
+                            <label for="contact-correo">Correo Electrónico</label>
+                            <input type="email" id="contact-correo" name="correo">
+                        </div>
+                    </div>
+                    <div class="fila-formulario">
+                        <div class="campo">
+                            <label for="mascota">Nombre de la mascota</label>
+                            <input type="text" id="mascota" name="mascota">
+                        </div>
+                        <div class="campo">
+                            <label for="telefono">Número de teléfono</label>
+                            <input type="tel" id="telefono" name="telefono">
+                        </div>
+                    </div>
+                    <div class="campo campo-completo">
+                        <label for="mensaje">Coméntanos un poco acerca de lo que pasó con tu mascota</label>
+                        <textarea id="mensaje" name="mensaje"></textarea>
+                    </div>
+                    <button type="submit">Quiero que me llamen</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

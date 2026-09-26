@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Mis Mascotas | VetWeb')}">
+    <title>Mis Mascotas | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarCliente}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+
+                <div>
+                    <h2>Mis Mascotas</h2>
+                    <p>Consulta y administra la información de tus mascotas registradas.</p>
+                </div>
+
+                <a th:href="@{/dashboard/registrar-mascota}" class="btn-nueva-mascota">
+                    <i class="bi bi-plus-lg"></i>
+                    Registrar Mascota
+                </a>
+
+            </div>
+
+            <!-- buscador -->
+
+            <div class="busqueda-panel">
+
+                <i class="bi bi-search"></i>
+
+                <input type="text" id="buscador"
+                    placeholder="Buscar mascota por nombre o raza..."
+                    oninput="filtrarMascotas()">
+
+            </div>
+
+            <!-- tabla -->
+
+            <section class="tabla-mascotas" id="tablaMascotas">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let mascotas = [];
+        let usuarioActual = null;
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+            usuarioActual = result.data;
+            await cargarMascotas();
+        }
+
+        async function cargarMascotas() {
+            try {
+                const res = await fetch(`/api/mascotas/cliente/${usuarioActual.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) return;
+                mascotas = await res.json();
+                await cargarEstadoCartillas();
+                renderizar(mascotas);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        let conCartilla = new Set();
+
+        async function cargarEstadoCartillas() {
+            conCartilla = new Set();
+            await Promise.all(mascotas.map(async m => {
+                try {
+                    const res = await fetch(`/api/cartillas/mascota/${m.idMascota}`, {
+                        credentials: 'same-origin'
+                    });
+                    if (res.ok) conCartilla.add(m.idMascota);
+                } catch (e) {
+                    /* sin cartilla */
+                }
+            }));
+        }
+
+        function estadoDe(m) {
+            return conCartilla.has(m.idMascota)
+                ? { clase: 'estable', texto: 'Estable' }
+                : { clase: 'pendiente', texto: 'Pendiente' };
+        }
+
+        function filtrarMascotas() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            if (!q) {
+                renderizar(mascotas);
+                return;
+            }
+            renderizar(mascotas.filter(m =>
+                m.nombre.toLowerCase().includes(q) ||
+                (m.especie || '').toLowerCase().includes(q) ||
+                (m.raza || '').toLowerCase().includes(q)
+            ));
+        }
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaMascotas');
+
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No tienes mascotas registradas</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>NOMBRE DE LA MASCOTA</span>
+                    <span>ESPECIE / RAZA</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(m => `
+                    <div class="fila-mascota">
+                        <div class="nombre-mascota-tabla">
+                            <div class="icono-mascota">
+                                <i class="bi bi-paw-fill"></i>
+                            </div>
+                            <strong>${escapar(m.nombre)}</strong>
+                        </div>
+                        <p>${escapar(m.especie)} / ${escapar(m.raza) || 'Sin raza'}</p>
+                        <div>
+                            <span class="estado-tabla ${estadoDe(m).clase}">${estadoDe(m).texto}</span>
+                        </div>
+                        <div class="acciones-mascota">
+                            <a href="/dashboard/mascota/${m.idMascota}" class="btn-tabla-secundario">
+                                Ver Citas
+                            </a>
+                            <a href="/dashboard/editar-mascota/${m.idMascota}" class="btn-tabla-principal">
+                                Editar
+                            </a>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function eliminarMascota(id, nombre) {
+            if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
+
+            try {
+                const res = await fetch(`/api/mascotas/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    await cargarMascotas();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'No se pudo eliminar la mascota');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

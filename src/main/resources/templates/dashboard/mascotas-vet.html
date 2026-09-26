@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Mis Pacientes | VetWeb')}">
+    <title>Mis Pacientes | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarVeterinario}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-busqueda-mascotas">
+                <div>
+                    <h2>Mis Pacientes</h2>
+                    <p>Mascotas que has atendido, con acceso a su historial clínico.</p>
+                </div>
+            </div>
+
+            <div class="busqueda-panel">
+                <i class="bi bi-search"></i>
+                <input type="text" id="buscador"
+                    placeholder="Buscar mascota, especie o dueño..."
+                    oninput="filtrarMascotas()">
+            </div>
+
+            <section class="tabla-mascotas" id="tablaMascotas">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let mascotas = [];
+
+        document.addEventListener('DOMContentLoaded', cargar);
+
+        async function cargar() {
+            const result = await Auth.getCurrentUser();
+            if (!result.success) return;
+
+            try {
+                const historialRes = await fetch(`/api/historial/veterinario/${result.data.id}`, {
+                    credentials: 'same-origin'
+                });
+                if (!historialRes.ok) return;
+
+                const historial = await historialRes.json();
+                const ids = [...new Set(historial.map(h => h.mascota?.idMascota).filter(Boolean))];
+
+                const responses = await Promise.all(ids.map(id =>
+                    fetch(`/api/mascotas/${id}`, { credentials: 'same-origin' })
+                        .then(r => r.ok ? r.json() : null)
+                        .catch(() => null)
+                ));
+
+                mascotas = responses.filter(Boolean);
+                renderizar(mascotas);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function filtrarMascotas() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            if (!q) {
+                renderizar(mascotas);
+                return;
+            }
+            renderizar(mascotas.filter(m =>
+                m.nombre.toLowerCase().includes(q) ||
+                (m.especie || '').toLowerCase().includes(q) ||
+                (m.raza || '').toLowerCase().includes(q) ||
+                (m.cliente?.nombres || '').toLowerCase().includes(q)
+            ));
+        }
+
+        function renderizar(lista) {
+            const cont = document.getElementById('tablaMascotas');
+
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">Aún no has atendido pacientes</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-mascotas-header">
+                    <span>NOMBRE DE LA MASCOTA</span>
+                    <span>ESPECIE / RAZA</span>
+                    <span>DUEÑO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(m => `
+                    <div class="fila-mascota">
+                        <div class="nombre-mascota-tabla">
+                            <div class="icono-mascota">
+                                <i class="bi bi-paw-fill"></i>
+                            </div>
+                            <strong>${escapar(m.nombre)}</strong>
+                        </div>
+                        <p>${escapar(m.especie)} / ${escapar(m.raza) || 'Sin raza'}</p>
+                        <p>${escapar([m.cliente?.nombres, m.cliente?.apellidos].filter(Boolean).join(' ') || '-')}</p>
+                        <div class="acciones-mascota">
+                            <a href="/dashboard/mascota/${m.idMascota}" class="btn-tabla-principal">
+                                Ver Historial
+                            </a>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+    </script>
+
+</body>
+
+</html>
