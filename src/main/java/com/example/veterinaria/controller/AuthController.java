@@ -65,7 +65,9 @@ public class AuthController {
             cliente.setApellidos(apellidos);
             cliente.setDni(dni != null && !dni.isBlank() ? dni.trim() : null);
             cliente.setTelefono(telefono);
-            cliente.setCorreo(correo != null && !correo.isBlank() ? correo : username);
+            /* El correo es opcional. No se rellena con el username porque no tiene
+               por qué ser un correo válido (Usuario.correo lleva @Email). */
+            cliente.setCorreo(correo != null && !correo.isBlank() ? correo.trim() : null);
             cliente.setDireccion(direccion);
             cliente.setRol(rolCliente);
 

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.veterinaria.exception.RecursoDuplicadoException;
 import com.example.veterinaria.modelo.Usuario;
 import com.example.veterinaria.service.UsuarioService;
 
@@ -53,9 +54,27 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<Usuario> save(@RequestBody Usuario usuario) {
-        Usuario saved = usuarioService.crear(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> crear(@RequestBody Usuario usuario) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(usuarioService.crearUsuario(usuario));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("mensaje", e.getMessage()));
+        } catch (RecursoDuplicadoException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensaje", e.getMessage()));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensaje", "El usuario o el DNI ya están registrados"));
+        } catch (jakarta.validation.ConstraintViolationException e) {
+            String detalle = e.getConstraintViolations().stream()
+                    .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                    .findFirst()
+                    .orElse("datos inválidos");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("mensaje", "Datos inválidos (" + detalle + ")"));
+        }
     }
 
     /**

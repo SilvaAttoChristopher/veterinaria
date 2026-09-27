@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Nuevo Usuario | VetWeb Admin')}">
+    <title>Nuevo Usuario | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-registro-mascota">
+
+                <a th:href="@{/dashboard/admin/usuarios}" class="volver-directorio">
+                    <i class="bi bi-arrow-left"></i>
+                    Volver a usuarios
+                </a>
+
+                <h2>Nuevo Usuario</h2>
+
+                <p>
+                    Crea una cuenta para un cliente, veterinario o administrador.
+                    El DNI es obligatorio si el rol es CLIENTE.
+                </p>
+
+            </div>
+
+            <section class="registro-mascota-card">
+
+                <form id="formUsuario" onsubmit="return false;">
+
+                    <div class="titulo-formulario-mascota">
+                        <i class="bi bi-person-plus"></i>
+                        <h3>Datos de Acceso</h3>
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="username">NOMBRE DE USUARIO</label>
+                            <input type="text" id="username" required
+                                   autocomplete="off" placeholder="Ej. maria.gomez">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="rol">ROL</label>
+                            <select id="rol" onchange="ajustarCampos()">
+                                <option value="CLIENTE">Cliente</option>
+                                <option value="VETERINARIO">Veterinario</option>
+                                <option value="ADMIN">Administrador</option>
+                            </select>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="password">CONTRASEÑA</label>
+                            <input type="password" id="password" required minlength="8"
+                                   autocomplete="new-password" placeholder="Mínimo 8 caracteres"
+                                   oninput="validarPassword()">
+                            <div class="password-meter">
+                                <div class="password-meter-barra">
+                                    <span id="barraFuerza"></span>
+                                </div>
+                                <small id="textoFuerza">Mínimo 8 caracteres</small>
+                            </div>
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="passwordConfirmacion">CONFIRMAR CONTRASEÑA</label>
+                            <input type="password" id="passwordConfirmacion" required minlength="8"
+                                   autocomplete="new-password" placeholder="Repita la contraseña"
+                                   oninput="validarPassword()">
+                            <small id="mensajeCoincidencia" class="password-coincidencia"></small>
+                        </div>
+
+                    </div>
+
+                    <div class="separador"></div>
+
+                    <div class="titulo-formulario-mascota">
+                        <i class="bi bi-person-vcard"></i>
+                        <h3>Datos Personales</h3>
+                    </div>
+
+                    <div class="formulario-mascota-grid">
+
+                        <div class="campo-registro-mascota">
+                            <label for="nombres">NOMBRES</label>
+                            <input type="text" id="nombres" required placeholder="Ej. María">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="apellidos">APELLIDOS</label>
+                            <input type="text" id="apellidos" required placeholder="Ej. Gómez">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="dni">DNI</label>
+                            <input type="text" id="dni" placeholder="Obligatorio para CLIENTE">
+                        </div>
+
+                        <div class="campo-registro-mascota" id="wrapEspecialidad">
+                            <label for="especialidad">ESPECIALIDAD</label>
+                            <input type="text" id="especialidad"
+                                   placeholder="Ej. Traumatología y Neurología">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="correo">CORREO</label>
+                            <input type="email" id="correo" placeholder="Si se omite, se usa el usuario">
+                        </div>
+
+                        <div class="campo-registro-mascota">
+                            <label for="telefono">TELÉFONO</label>
+                            <input type="tel" id="telefono" placeholder="Opcional">
+                        </div>
+
+                        <div class="campo-registro-mascota campo-observaciones">
+                            <label for="direccion">DIRECCIÓN</label>
+                            <input type="text" id="direccion" placeholder="Opcional">
+                        </div>
+
+                    </div>
+
+                    <div class="acciones-registro-mascota">
+
+                        <a th:href="@{/dashboard/admin/usuarios}" class="btn-cancelar-registro">
+                            Cancelar
+                        </a>
+
+                        <button type="button" class="btn-guardar-registro" id="btnGuardar"
+                            onclick="guardar()" disabled>
+                            <i class="bi bi-floppy"></i>
+                            Crear Usuario
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            ajustarCampos();
+            document.getElementById('username').focus();
+        });
+
+        function ajustarCampos() {
+            const rol = document.getElementById('rol').value;
+            document.getElementById('wrapEspecialidad').style.display =
+                rol === 'VETERINARIO' ? '' : 'none';
+            document.getElementById('dni').required = rol === 'CLIENTE';
+        }
+
+        function fortaleza(pwd) {
+            if (!pwd) return { puntos: 0, texto: 'Mínimo 8 caracteres', clase: '' };
+            if (pwd.length < 8) return { puntos: 0, texto: 'Mínimo 8 caracteres', clase: '' };
+
+            let puntos = 0;
+            if (pwd.length >= 12) puntos++;
+            if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) puntos++;
+            if (/\d/.test(pwd)) puntos++;
+            if (/[^A-Za-z0-9]/.test(pwd)) puntos++;
+
+            if (pwd.length < 10 && puntos <= 1) return { puntos: 40, texto: 'Contraseña débil', clase: 'debil' };
+            if (puntos <= 3) return { puntos: 70, texto: 'Contraseña aceptable', clase: 'media' };
+            return { puntos: 100, texto: 'Contraseña fuerte', clase: 'fuerte' };
+        }
+
+        function validarPassword() {
+            const pwd = document.getElementById('password').value;
+            const conf = document.getElementById('passwordConfirmacion').value;
+
+            const f = fortaleza(pwd);
+            document.getElementById('barraFuerza').style.width = f.puntos + '%';
+            document.getElementById('barraFuerza').className = f.clase;
+            document.getElementById('textoFuerza').textContent = f.texto;
+
+            const mensaje = document.getElementById('mensajeCoincidencia');
+            if (conf) {
+                if (pwd === conf) {
+                    mensaje.textContent = 'Las contraseñas coinciden';
+                    mensaje.className = 'password-coincidencia ok';
+                } else {
+                    mensaje.textContent = 'Las contraseñas no coinciden';
+                    mensaje.className = 'password-coincidencia error';
+                }
+            } else {
+                mensaje.textContent = '';
+                mensaje.className = 'password-coincidencia';
+            }
+
+            const listo = pwd.length >= 8 && pwd === conf
+                && document.getElementById('username').value.trim().length > 0
+                && document.getElementById('nombres').value.trim().length > 0
+                && document.getElementById('apellidos').value.trim().length > 0;
+
+            document.getElementById('btnGuardar').disabled = !listo;
+        }
+
+        ['username', 'nombres', 'apellidos'].forEach(id => {
+            document.getElementById(id).addEventListener('input', validarPassword);
+        });
+
+        async function guardar() {
+            const btn = document.getElementById('btnGuardar');
+            const pwd = document.getElementById('password').value;
+            const conf = document.getElementById('passwordConfirmacion').value;
+
+            if (pwd !== conf) {
+                alert('Las contraseñas no coinciden');
+                return;
+            }
+
+            btn.disabled = true;
+
+            const payload = {
+                username: document.getElementById('username').value.trim(),
+                password: pwd,
+                nombres: document.getElementById('nombres').value.trim(),
+                apellidos: document.getElementById('apellidos').value.trim(),
+                dni: document.getElementById('dni').value.trim() || null,
+                especialidad: document.getElementById('especialidad').value.trim() || null,
+                correo: document.getElementById('correo').value.trim() || null,
+                telefono: document.getElementById('telefono').value.trim() || null,
+                direccion: document.getElementById('direccion').value.trim() || null,
+                rol: { nombre: document.getElementById('rol').value }
+            };
+
+            try {
+                const res = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok) {
+                    alert('Usuario creado correctamente. ' + (payload.username));
+                    window.location.href = '/dashboard/admin/usuarios';
+                } else {
+                    alert(data.mensaje || 'No se pudo crear el usuario');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert('Error de conexión');
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

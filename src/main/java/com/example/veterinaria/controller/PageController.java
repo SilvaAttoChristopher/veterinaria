@@ -170,6 +170,11 @@ public class PageController {
         return conActiva(model, "usuarios", "dashboard/admin/usuarios");
     }
 
+    @GetMapping("/dashboard/admin/registrar-usuario")
+    public String adminRegistrarUsuario(Model model) {
+        return conActiva(model, "usuarios", "dashboard/admin/usuario-form");
+    }
+
     @GetMapping("/dashboard/admin/editar-usuario/{id}")
     public String adminEditarUsuario(@PathVariable Long id, Model model) {
         model.addAttribute("idUsuario", id);

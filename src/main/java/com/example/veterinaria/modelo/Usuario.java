@@ -2,7 +2,7 @@ package com.example.veterinaria.modelo;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,7 +31,9 @@ public class Usuario {
     private String username;
 
     @NotBlank
-    @JsonIgnore
+    /* WRITE_ONLY: acepta la contraseña en las peticiones, pero nunca la devuelve en
+       las respuestas. Con @JsonIgnore el campo tampoco se deserializaría. */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
 

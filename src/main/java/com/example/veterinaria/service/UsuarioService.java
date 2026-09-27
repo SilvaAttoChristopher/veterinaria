@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.veterinaria.exception.RecursoDuplicadoException;
 import com.example.veterinaria.modelo.Rol;
 import com.example.veterinaria.modelo.Usuario;
 import com.example.veterinaria.repository.RolRepository;
@@ -98,6 +99,92 @@ public class UsuarioService {
     }
 
     /**
+     * Crea un usuario validando los datos y codificando la contraseña.
+     *
+     * @throws IllegalArgumentException si falta un campo obligatorio o la contraseña
+     *                                  no cumple las reglas de formato.
+     * @throws RecursoDuplicadoException si el usuario o el dni ya existen.
+     */
+    @Transactional
+    public Usuario crearUsuario(Usuario datos) {
+        if (datos.getUsername() == null || datos.getUsername().isBlank()) {
+            throw new IllegalArgumentException("El nombre de usuario es obligatorio");
+        }
+        if (datos.getNombres() == null || datos.getNombres().isBlank()) {
+            throw new IllegalArgumentException("Los nombres son obligatorios");
+        }
+        if (datos.getApellidos() == null || datos.getApellidos().isBlank()) {
+            throw new IllegalArgumentException("Los apellidos son obligatorios");
+        }
+
+        String username = datos.getUsername().trim();
+        if (usuarioRepository.existsByUsername(username)) {
+            throw new RecursoDuplicadoException("El nombre de usuario ya existe");
+        }
+
+        validarPassword(datos.getPassword());
+
+        Rol rol = datos.getRol() != null && datos.getRol().getNombre() != null
+                ? rolRepository.findByNombre(datos.getRol().getNombre().trim().toUpperCase())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Rol no válido: " + datos.getRol().getNombre()))
+                : rolRepository.findByNombre("CLIENTE")
+                    .orElseThrow(() -> new IllegalStateException("Rol CLIENTE no encontrado"));
+
+        Usuario nuevo = new Usuario();
+        nuevo.setUsername(username);
+        nuevo.setPassword(passwordEncoder.encode(datos.getPassword()));
+        nuevo.setNombres(datos.getNombres().trim());
+        nuevo.setApellidos(datos.getApellidos().trim());
+        nuevo.setTelefono(datos.getTelefono());
+        nuevo.setDireccion(datos.getDireccion());
+        nuevo.setRol(rol);
+
+        /* El correo es opcional: no se sustituye por el nombre de usuario porque
+           no tiene por qué ser un correo válido y la columna lleva @Email. */
+        nuevo.setCorreo(datos.getCorreo() != null && !datos.getCorreo().isBlank()
+                ? datos.getCorreo().trim()
+                : null);
+
+        if ("CLIENTE".equals(rol.getNombre())) {
+            String dni = datos.getDni();
+            if (dni == null || dni.isBlank()) {
+                throw new IllegalArgumentException("El rol CLIENTE requiere un DNI");
+            }
+            dni = dni.trim();
+            if (!usuarioRepository.findByDni(dni).isEmpty()) {
+                throw new RecursoDuplicadoException("El DNI ya está registrado");
+            }
+            nuevo.setDni(dni);
+        } else if (datos.getDni() != null && !datos.getDni().isBlank()) {
+            String dni = datos.getDni().trim();
+            if (!usuarioRepository.findByDni(dni).isEmpty()) {
+                throw new RecursoDuplicadoException("El DNI ya está registrado");
+            }
+            nuevo.setDni(dni);
+        }
+
+        if ("VETERINARIO".equals(rol.getNombre())) {
+            nuevo.setEspecialidad(datos.getEspecialidad());
+        }
+
+        nuevo.setEstado("ACTIVO");
+        return usuarioRepository.save(nuevo);
+    }
+
+    private void validarPassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("La contraseña es obligatoria");
+        }
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres");
+        }
+        if (password.length() > 72) {
+            throw new IllegalArgumentException("La contraseña no puede superar los 72 caracteres");
+        }
+    }
+
+    /**
      * Reasigna el rol de un usuario.
      *
      * Con el modelo de tabla única no hay migración de datos: dni y especialidad se
@@ -139,14 +226,6 @@ public class UsuarioService {
                 .orElseThrow(() -> new NoSuchElementException("Usuario no encontrado"));
 
         usuario.setEstado(estado);
-        return usuarioRepository.save(usuario);
-    }
-
-    /** Crea un usuario codificando la contraseña. */
-    public Usuario crear(Usuario usuario) {
-        if (usuario.getPassword() != null && !usuario.getPassword().startsWith("$2")) {
-            usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        }
         return usuarioRepository.save(usuario);
     }
 
