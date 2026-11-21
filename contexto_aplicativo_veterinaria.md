@@ -872,6 +872,7 @@ POST   /api/auth/logout
 
 ```http
 GET    /api/admin/estadisticas
+GET    /api/admin/citas?desde=&hasta=&estado=&veterinario=&mascota=&servicio=
 GET    /api/admin/permisos
 GET    /api/admin/roles
 GET    /api/permisos
@@ -879,6 +880,11 @@ GET    /api/permisos/rol/{idRol}
 POST   /api/permisos/rol/{idRol}       # body: {permiso:{idPermiso}}
 DELETE /api/permisos/rol/{idRol}/{idPermiso}
 ```
+
+`/api/admin/citas` devuelve el reporte de citas con mascota, dueño, veterinario
+y servicio ya resueltos, ordenado de la más reciente a la más antigua. Todos los
+parámetros son opcionales (`desde` y `hasta` en `YYYY-MM-DD`); los que no llegan
+no restringen el resultado.
 
 ## Mascotas
 

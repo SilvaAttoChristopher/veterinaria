@@ -56,3 +56,33 @@ function getCurrentUser() {
 function clearUserData() {
     localStorage.removeItem('currentUser');
 }
+
+/**
+ * Descarga un reporte en CSV.
+ *
+ * `encabezados` son los títulos de cada columna y `filas` una lista de arreglos
+ * con los valores, en el mismo orden. Se separa con ";" para que Excel en
+ * español lo abra correctamente, y el BOM inicial evita que las tildes salgan
+ * corruptas.
+ */
+function exportarReporteCSV(nombreArchivo, encabezados, filas) {
+    const escapar = valor => {
+        const texto = (valor === null || valor === undefined) ? '' : String(valor);
+        return /[";\n\r]/.test(texto) ? '"' + texto.replace(/"/g, '""') + '"' : texto;
+    };
+
+    const contenido = [encabezados, ...filas]
+        .map(fila => fila.map(escapar).join(';'))
+        .join('\r\n');
+
+    const blob = new Blob(['\uFEFF' + contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+}

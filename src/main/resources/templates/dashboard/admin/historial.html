@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Historial Médico | VetWeb Admin')}">
+    <title>Historial Médico | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-citas">
+
+                <div>
+                    <h2>Reporte de Historial Médico</h2>
+                    <p>Expediente clínico de la mascota: atenciones registradas por los veterinarios.</p>
+                </div>
+
+                <div class="acciones-reporte">
+                    <a href="#" class="btn-nueva-cita" onclick="exportarHistorial(); return false;">
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        Exportar CSV
+                    </a>
+                    <a href="#" class="btn-nueva-cita" onclick="window.print(); return false;">
+                        <i class="bi bi-printer"></i>
+                        Imprimir / PDF
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- selector de mascota -->
+
+            <div class="filtros-reporte">
+                <div class="busqueda-citas">
+                    <i class="bi bi-funnel"></i>
+                    <select id="filtroMascota" onchange="cargarReporte()">
+                        <option value="">Seleccione una mascota...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ficha de la mascota -->
+
+            <section class="perfil-card">
+                <div class="perfil-header">
+                    <h3 id="titFicha" style="margin:0;">Información general</h3>
+                </div>
+                <div class="perfil-contenido">
+                    <div class="datos-grid" id="datosMascota">
+                        <p>Seleccione una mascota para ver su expediente.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- historial clinico -->
+
+            <section class="perfil-card" style="margin-top:20px;">
+                <div class="perfil-header">
+                    <h3 id="titHistorial" style="margin:0;">Historial clínico</h3>
+                </div>
+                <div class="perfil-contenido" id="contenidoHistorial">
+                    <p>Sin atenciones por mostrar.</p>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let mascotaActual = null;
+        let historial = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarMascotas();
+
+            /* Enlace desde el reporte de citas: /dashboard/admin/historial?mascota=ID */
+            const id = new URLSearchParams(window.location.search).get('mascota');
+            if (id) {
+                document.getElementById('filtroMascota').value = id;
+            }
+
+            await cargarReporte();
+        });
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined || valor === '') return '—';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function nombreCompleto(persona) {
+            return [persona?.nombres, persona?.apellidos].filter(Boolean).join(' ') || '—';
+        }
+
+        function calcularEdad(fechaNacimiento) {
+            if (!fechaNacimiento) return 'No especificada';
+
+            const nacimiento = new Date(fechaNacimiento);
+            if (isNaN(nacimiento.getTime())) return 'No especificada';
+
+            const hoy = new Date();
+            let anios = hoy.getFullYear() - nacimiento.getFullYear();
+            let meses = hoy.getMonth() - nacimiento.getMonth();
+
+            if (hoy.getDate() < nacimiento.getDate()) meses--;
+            if (meses < 0) {
+                anios--;
+                meses += 12;
+            }
+
+            if (anios > 0) return `${anios} año(s)`;
+            if (meses > 0) return `${meses} mes(es)`;
+            return 'Menos de 1 mes';
+        }
+
+        async function cargarMascotas() {
+            try {
+                const res = await fetch('/api/mascotas', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const mascotas = await res.json();
+                mascotas.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+
+                const select = document.getElementById('filtroMascota');
+                mascotas.forEach(m => {
+                    const opcion = document.createElement('option');
+                    opcion.value = m.idMascota;
+                    opcion.textContent = `${m.nombre} · ${m.especie || 'Mascota'} — ${nombreCompleto(m.cliente)}`;
+                    select.appendChild(opcion);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function cargarReporte() {
+            const id = document.getElementById('filtroMascota').value;
+            const contMascota = document.getElementById('datosMascota');
+            const contHistorial = document.getElementById('contenidoHistorial');
+
+            document.getElementById('titHistorial').textContent = 'Historial clínico';
+
+            if (!id) {
+                mascotaActual = null;
+                historial = [];
+                contMascota.innerHTML = '<p>Seleccione una mascota para ver su expediente.</p>';
+                contHistorial.innerHTML = '<p>Sin atenciones por mostrar.</p>';
+                return;
+            }
+
+            const [mascotaRes, historialRes] = await Promise.all([
+                fetch(`/api/mascotas/${id}`, { credentials: 'same-origin' }),
+                fetch(`/api/historial/mascota/${id}`, { credentials: 'same-origin' })
+            ]);
+
+            if (!mascotaRes.ok) {
+                contMascota.innerHTML = '<p>No se encontró la mascota o no tienes permiso para verla.</p>';
+                contHistorial.innerHTML = '<p>No se pudo consultar el historial clínico.</p>';
+                return;
+            }
+
+            const mascota = await mascotaRes.json();
+            mascotaActual = mascota;
+
+            document.getElementById('titFicha').textContent = `Información general — ${mascota.nombre}`;
+
+            const datos = [
+                ['Nombre', mascota.nombre],
+                ['Especie', mascota.especie],
+                ['Raza', mascota.raza || 'No especificada'],
+                ['Sexo', mascota.sexo === 'M' ? 'Macho' :
+                         mascota.sexo === 'F' ? 'Hembra' : 'No especificado'],
+                ['Fecha de nacimiento', mascota.fechaNacimiento || 'No especificada'],
+                ['Edad', calcularEdad(mascota.fechaNacimiento)],
+                ['Peso', mascota.peso != null ? `${mascota.peso} kg` : 'No especificado'],
+                ['Dueño', nombreCompleto(mascota.cliente)],
+                ['Observaciones', mascota.observaciones || 'Ninguna']
+            ];
+
+            contMascota.innerHTML = datos.map(([etiqueta, valor]) => `
+                <div class="dato-perfil">
+                    <strong>${escapar(etiqueta)}</strong>
+                    <p>${escapar(valor)}</p>
+                </div>
+            `).join('');
+
+            if (!historialRes.ok) {
+                historial = [];
+                contHistorial.innerHTML = '<p>No se pudo consultar el historial clínico.</p>';
+                return;
+            }
+
+            historial = await historialRes.json();
+            document.getElementById('titHistorial').textContent =
+                `Historial clínico (${historial.length} atenciones registradas)`;
+
+            if (historial.length === 0) {
+                contHistorial.innerHTML = '<p>Esta mascota no tiene atenciones registradas.</p>';
+                return;
+            }
+
+            contHistorial.innerHTML = historial.map(h => `
+                <div class="atencion-reporte">
+                    <div class="atencion-cabecera">
+                        <strong>${escapar(h.fechaAtencion)}</strong>
+                        <span>${escapar(nombreCompleto(h.veterinario))}</span>
+                    </div>
+                    <div class="datos-grid">
+                        <div class="dato-perfil">
+                            <strong>Motivo</strong>
+                            <p>${escapar(h.motivo || 'No especificado')}</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Diagnóstico</strong>
+                            <p>${escapar(h.diagnostico || 'No registrado')}</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Tratamiento</strong>
+                            <p>${escapar(h.tratamiento || 'No registrado')}</p>
+                        </div>
+                        <div class="dato-perfil">
+                            <strong>Observaciones</strong>
+                            <p>${escapar(h.observaciones || 'Ninguna')}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function exportarHistorial() {
+            if (!mascotaActual || historial.length === 0) {
+                alert('No hay atenciones para exportar');
+                return;
+            }
+
+            const base = (mascotaActual.nombre || 'mascota')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+
+            exportarReporteCSV(
+                `historial-${base || 'mascota'}-${new Date().toISOString().slice(0, 10)}.csv`,
+                ['Atención', 'Veterinario', 'Motivo', 'Diagnóstico', 'Tratamiento', 'Observaciones'],
+                historial.map(h => [
+                    h.fechaAtencion,
+                    nombreCompleto(h.veterinario),
+                    h.motivo || '',
+                    h.diagnostico || '',
+                    h.tratamiento || '',
+                    h.observaciones || ''
+                ])
+            );
+        }
+    </script>
+
+</body>
+
+</html>

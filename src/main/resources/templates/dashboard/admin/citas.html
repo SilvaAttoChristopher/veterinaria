@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Reporte de Citas | VetWeb Admin')}">
+    <title>Reporte de Citas | VetWeb Admin</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="~{fragments/dashboard-layout :: sidebarAdmin}"></div>
+
+        <main class="contenido-dashboard">
+
+            <div class="cabecera-citas">
+
+                <div>
+                    <h2>Reporte de Citas</h2>
+                    <p>Citas registradas con mascota, dueño, veterinario y servicio.</p>
+                </div>
+
+                <div class="acciones-reporte">
+                    <a href="#" class="btn-nueva-cita" onclick="exportarCitas(); return false;">
+                        <i class="bi bi-file-earmark-spreadsheet"></i>
+                        Exportar CSV
+                    </a>
+                    <a href="#" class="btn-nueva-cita" onclick="window.print(); return false;">
+                        <i class="bi bi-printer"></i>
+                        Imprimir / PDF
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- resumen del periodo filtrado -->
+
+            <section class="perfil-card">
+                <div class="perfil-header">
+                    <h3 style="margin:0;">Resumen</h3>
+                </div>
+                <div class="perfil-contenido">
+                    <div class="datos-grid" id="resumen">
+                        <div class="dato-perfil">
+                            <span>CARGANDO</span>
+                            <p>—</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- filtros -->
+
+            <div class="filtros-reporte" style="margin-top:20px;">
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscador"
+                        placeholder="Buscar por mascota, dueño o motivo..."
+                        oninput="renderizar()">
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-funnel"></i>
+                    <select id="filtroEstado" onchange="cargarCitas()">
+                        <option value="">Todos los estados</option>
+                        <option value="PROGRAMADA">Programada</option>
+                        <option value="ATENDIDA">Atendida</option>
+                        <option value="CANCELADA">Cancelada</option>
+                        <option value="NO_ASISTIO">No Asistió</option>
+                    </select>
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-calendar3"></i>
+                    <input type="date" id="filtroDesde" title="Fecha inicial"
+                        onchange="cargarCitas()">
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-calendar-check"></i>
+                    <input type="date" id="filtroHasta" title="Fecha final"
+                        onchange="cargarCitas()">
+                </div>
+
+                <div class="busqueda-citas">
+                    <i class="bi bi-person-badge"></i>
+                    <select id="filtroVeterinario" onchange="cargarCitas()">
+                        <option value="">Todos los veterinarios</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- tabla -->
+
+            <section class="tabla-reporte" id="tablaCitas">
+                <!-- Se carga dinámicamente -->
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+    <script>
+        let citas = [];
+
+        const ESTADOS = {
+            'PROGRAMADA': { clase: 'pendiente', texto: 'Programada' },
+            'ATENDIDA': { clase: 'atendida', texto: 'Atendida' },
+            'CANCELADA': { clase: 'cancelada', texto: 'Cancelada' },
+            'NO_ASISTIO': { clase: 'cancelada', texto: 'No Asistió' }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarVeterinarios();
+            await cargarCitas();
+        });
+
+        function escapar(valor) {
+            if (valor === null || valor === undefined) return '';
+            return String(valor)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function nombreCompleto(persona) {
+            return [persona?.nombres, persona?.apellidos].filter(Boolean).join(' ') || '—';
+        }
+
+        async function cargarVeterinarios() {
+            try {
+                const res = await fetch('/api/veterinarios', { credentials: 'same-origin' });
+                if (!res.ok) return;
+
+                const veterinarios = await res.json();
+                const select = document.getElementById('filtroVeterinario');
+
+                veterinarios.forEach(v => {
+                    const opcion = document.createElement('option');
+                    opcion.value = v.idUsuario;
+                    opcion.textContent = nombreCompleto(v);
+                    select.appendChild(opcion);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        /* Los filtros estructurados (fechas, estado y veterinario) se resuelven en
+           el servidor; el texto libre se filtra sobre el resultado ya cargado. */
+        async function cargarCitas() {
+            const params = new URLSearchParams();
+            const desde = document.getElementById('filtroDesde').value;
+            const hasta = document.getElementById('filtroHasta').value;
+            const estado = document.getElementById('filtroEstado').value;
+            const veterinario = document.getElementById('filtroVeterinario').value;
+
+            if (desde) params.set('desde', desde);
+            if (hasta) params.set('hasta', hasta);
+            if (estado) params.set('estado', estado);
+            if (veterinario) params.set('veterinario', veterinario);
+
+            try {
+                const res = await fetch(`/api/admin/citas?${params.toString()}`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!res.ok) {
+                    document.getElementById('tablaCitas').innerHTML =
+                        '<p style="padding:24px;text-align:center;">No se pudo cargar el reporte</p>';
+                    return;
+                }
+
+                citas = await res.json();
+                pintarResumen();
+                renderizar();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function pintarResumen() {
+            const contar = estado => citas.filter(c => c.estado === estado).length;
+
+            const datos = [
+                ['TOTAL', citas.length],
+                ['PROGRAMADAS', contar('PROGRAMADA')],
+                ['ATENDIDAS', contar('ATENDIDA')],
+                ['CANCELADAS', contar('CANCELADA')],
+                ['NO ASISTIÓ', contar('NO_ASISTIO')],
+                ['VETERINARIOS', new Set(citas.map(c => c.veterinario?.idUsuario).filter(Boolean)).size]
+            ];
+
+            document.getElementById('resumen').innerHTML = datos.map(([etiqueta, valor]) => `
+                <div class="dato-perfil">
+                    <span>${etiqueta}</span>
+                    <p>${valor}</p>
+                </div>
+            `).join('');
+        }
+
+        function filtrar() {
+            const q = document.getElementById('buscador').value.trim().toLowerCase();
+            if (!q) return citas;
+
+            return citas.filter(c => [
+                c.mascota?.nombre,
+                c.mascota?.especie,
+                nombreCompleto(c.mascota?.cliente),
+                nombreCompleto(c.veterinario),
+                c.servicio?.nombre,
+                c.motivo
+            ].filter(Boolean).filter(v => v !== '—').join(' ').toLowerCase().includes(q));
+        }
+
+        function renderizar() {
+            const lista = filtrar();
+            const cont = document.getElementById('tablaCitas');
+
+            if (lista.length === 0) {
+                cont.innerHTML = '<p style="padding:24px;text-align:center;">No hay citas para los filtros seleccionados</p>';
+                return;
+            }
+
+            cont.innerHTML = `
+                <div class="tabla-reporte-header">
+                    <span>MASCOTA / FECHA</span>
+                    <span>DUEÑO</span>
+                    <span>VETERINARIO</span>
+                    <span>SERVICIO / MOTIVO</span>
+                    <span>ESTADO</span>
+                    <span>ACCIONES</span>
+                </div>
+                ${lista.map(c => {
+                    const est = ESTADOS[c.estado] || { clase: 'pendiente', texto: c.estado };
+                    return `
+                        <div class="fila-reporte">
+                            <div class="nombre-cita-mascota">
+                                <div class="icono-mascota">
+                                    <i class="bi bi-paw-fill"></i>
+                                </div>
+                                <div>
+                                    <strong>${escapar(c.mascota?.nombre || 'Mascota')}</strong>
+                                    <span>${escapar(c.fecha)} · ${escapar((c.hora || '').slice(0, 5))}</span>
+                                </div>
+                            </div>
+                            <p>${escapar(nombreCompleto(c.mascota?.cliente))}</p>
+                            <p>${escapar(nombreCompleto(c.veterinario))}</p>
+                            <div>
+                                <p>${escapar(c.servicio?.nombre || '—')}</p>
+                                <p class="secundario">${escapar(c.motivo || 'Sin motivo')}</p>
+                            </div>
+                            <div>
+                                <span class="estado-cita ${est.clase}">${escapar(est.texto)}</span>
+                            </div>
+                            <div class="acciones-cita">
+                                <a href="/dashboard/admin/historial?mascota=${c.mascota?.idMascota ?? ''}"
+                                   class="btn-cita-secundario">Ver historial</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+        }
+
+        function exportarCitas() {
+            const lista = filtrar();
+
+            if (lista.length === 0) {
+                alert('No hay citas para exportar');
+                return;
+            }
+
+            exportarReporteCSV(
+                `reporte-citas-${new Date().toISOString().slice(0, 10)}.csv`,
+                ['Cita', 'Fecha', 'Hora', 'Mascota', 'Especie', 'Dueño', 'Veterinario',
+                    'Servicio', 'Estado', 'Motivo'],
+                lista.map(c => [
+                    c.idCita,
+                    c.fecha,
+                    (c.hora || '').slice(0, 5),
+                    c.mascota?.nombre || '',
+                    c.mascota?.especie || '',
+                    nombreCompleto(c.mascota?.cliente),
+                    nombreCompleto(c.veterinario),
+                    c.servicio?.nombre || '',
+                    ESTADOS[c.estado]?.texto || c.estado,
+                    c.motivo || ''
+                ])
+            );
+        }
+    </script>
+
+</body>
+
+</html>

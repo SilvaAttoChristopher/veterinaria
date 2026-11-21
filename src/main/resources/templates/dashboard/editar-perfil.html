@@ -38,11 +38,11 @@
 
                     <!-- foto -->
 
-                    <div class="editar-foto">
+                   <div class="editar-foto">
 
                         <div class="foto-perfil-editar">
 
-                            <img th:src="@{/imagenes/perfil.png}" alt="Foto de perfil" id="fotoPerfil">
+                            <img th:src="${fotoPerfilUrl} ?: @{/imagenes/perfil.png}" alt="Foto de perfil" id="fotoPerfil">
 
                             <span class="icono-editar-foto">
                                 <i class="bi bi-pencil-fill"></i>
@@ -143,6 +143,7 @@
 
     <script>
         let fotoSeleccionada = null;
+        let quitarFoto = false;
         const FOTO_POR_DEFECTO = '/imagenes/perfil.png';
 
         document.addEventListener('DOMContentLoaded', cargarFormulario);
@@ -176,6 +177,7 @@
                         return;
                     }
                     fotoSeleccionada = file;
+                    quitarFoto = false;
                     document.getElementById('fotoPerfil').src = URL.createObjectURL(file);
                 }
             }
@@ -183,8 +185,24 @@
 
         function restablecerFoto() {
             fotoSeleccionada = null;
+            quitarFoto = true;
             document.getElementById('inputFoto').value = '';
             document.getElementById('fotoPerfil').src = FOTO_POR_DEFECTO;
+        }
+
+        async function guardarFoto() {
+            if (fotoSeleccionada) {
+                const datos = new FormData();
+                datos.append('foto', fotoSeleccionada);
+                const res = await fetch('/api/perfil/foto', { method: 'POST', body: datos });
+                if (!res.ok) {
+                    const err = await res.json();
+                    return err.mensaje;
+                }
+            } else if (quitarFoto) {
+                await fetch('/api/perfil/foto', { method: 'DELETE' });
+            }
+            return null;
         }
 
         async function guardarPerfil() {
@@ -215,7 +233,12 @@
                 });
 
                 if (res.ok) {
-                    alert('Perfil actualizado correctamente');
+                    const errorFoto = await guardarFoto();
+                    if (errorFoto) {
+                        alert('Perfil actualizado, pero la foto no se guardó: ' + errorFoto);
+                    } else {
+                        alert('Perfil actualizado correctamente');
+                    }
                     window.location.href = '/dashboard/perfil';
                 } else {
                     const err = await res.json().catch(() => ({}));
@@ -228,7 +251,3 @@
             }
         }
     </script>
-
-</body>
-
-</html>

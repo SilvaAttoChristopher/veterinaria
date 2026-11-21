@@ -190,7 +190,7 @@
                 const servicios = await res.json();
                 const sel = document.getElementById('citaServicio');
                 sel.innerHTML = '<option value="">Seleccione servicio</option>' +
-                    servicios.map(s => `<option value="${s.idServicio}">${s.nombre} - S/. ${s.precio}</option>`).join('');
+                    servicios.map(s => `<option value="${s.idServicio}">${s.nombre} S/. ${s.precio}</option>`).join('');
             } catch (e) {
                 console.error(e);
             }
@@ -238,8 +238,6 @@
 
                 const horarios = await res.json();
 
-                /* diaSemana is stored ISO 1-7 (Lunes=1 .. Domingo=7).
-                   JS getDay() returns 0-6, so map Sunday 0 -> 7. */
                 const jsDay = new Date(`${fecha}T00:00:00`).getDay();
                 const diaSemana = jsDay === 0 ? 7 : jsDay;
 
@@ -274,7 +272,66 @@
             }
         }
 
+
+        //  Modal de Simulación de Pago
+        function mostrarModalPagoSimulado() {
+            return new Promise((resolve) => {
+                if (document.getElementById('modalPagoSimulado')) return;
+
+                const overlay = document.createElement('div');
+                overlay.id = 'modalPagoSimulado';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:99999;font-family:inherit;';
+
+                overlay.innerHTML = `
+                    <div style="background:white;padding:30px;border-radius:10px;width:400px;box-shadow:0 5px 20px rgba(0,0,0,0.3);">
+                        <h3 style="margin-top:0;color:#333;margin-bottom:15px;">Pago de Cita</h3>
+                        <p style="color:#666;font-size:14px;margin-bottom:20px;">Ingrese los datos de su tarjeta para procesar el pago y agendar.</p>
+
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">NÚMERO DE TARJETA</label>
+                            <input type="text" id="simCardNum" value="4532 4532 4532 4532" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
+                        </div>
+
+                        <div style="display:flex;gap:10px;margin-bottom:20px;">
+                            <div style="flex:1;">
+                                <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">EXPIRACIÓN</label>
+                                <input type="text" id="simCardExp" value="12/28" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">CVV</label>
+                                <input type="password" id="simCardCvv" value="123" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
+                            </div>
+                        </div>
+
+                        <div style="display:flex;justify-content:flex-end;gap:10px;">
+                            <button type="button" id="btnCancelarPago" style="padding:8px 16px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">Cancelar</button>
+                            <button type="button" id="btnConfirmarPago" style="padding:8px 16px;background:#198754;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Pagar y Agendar</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+
+                document.getElementById('btnConfirmarPago').onclick = () => {
+                    overlay.remove();
+                    resolve(true); // Pago autorizado -> continua guardando la cita
+                };
+
+                document.getElementById('btnCancelarPago').onclick = () => {
+                    overlay.remove();
+                    resolve(false); // Cancelado -> se frena todo
+                };
+            });
+        }
+
+        // función original de guardar, ahora protegida con el modal de pago al inicio
         async function guardarCita() {
+            // Se abre el modal en medio antes de hacer cualquier cosa
+            const pagoAceptado = await mostrarModalPagoSimulado();
+            if (!pagoAceptado) {
+                return; // Si el usuario cancela el pago, no hace nada
+            }
+
             const btn = document.getElementById('btnGuardar');
             btn.disabled = true;
 

@@ -94,10 +94,16 @@ const Auth = {
     }
 };
 
-// DOM event handlers
 document.addEventListener('DOMContentLoaded', function() {
 
-    // --- LOGIN MODAL ---
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') === 'true') {
+        const loginModalEl = document.getElementById('Login');
+        if (loginModalEl && typeof bootstrap !== 'undefined') {
+            new bootstrap.Modal(loginModalEl).show();
+        }
+    }
+
     const loginBtn = document.querySelector('#loginBtn');
     if (loginBtn) {
         loginBtn.addEventListener('click', async function() {
@@ -118,7 +124,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- REGISTER MODAL ---
     const registerBtn = document.querySelector('#registerBtn');
     if (registerBtn) {
         registerBtn.addEventListener('click', async function() {
@@ -160,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- STAFF LOGIN (staff.html) ---
     const staffLoginForm = document.getElementById('staffLoginForm');
     if (staffLoginForm) {
         staffLoginForm.addEventListener('submit', async function(e) {
@@ -177,7 +181,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- LOGOUT BUTTONS ---
     document.querySelectorAll('.cerrar-sesion').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();

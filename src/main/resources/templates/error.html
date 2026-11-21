@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Aviso de Seguridad</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body style="text-align:center; padding:80px; font-family:sans-serif;">
+<h1 th:text="${codigo != null ? 'Código ' + codigo : 'Aviso del Sistema'}">Aviso</h1>
+<p th:text="${mensaje != null ? mensaje : 'Acción no permitida o solicitud inválida.'}">
+    Mensaje genérico, sin detalle interno.
+</p>
+<a th:href="@{/}" style="margin-top:20px; display:inline-block;">Volver al inicio</a>
+</body>
+</html>

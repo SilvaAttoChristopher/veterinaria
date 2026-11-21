@@ -102,6 +102,16 @@ src/main/resources/
 El panel de administración incluye resumen con indicadores, gestión de usuarios
 (rol y estado), veterinarios, servicios, roles y permisos, y boletas.
 
+### Reportes
+
+| Reporte | Ruta | API |
+|---|---|---|
+| Citas (filtro por fechas, estado y veterinario) | `/dashboard/admin/citas` | `GET /api/admin/citas` |
+| Historial médico de una mascota | `/dashboard/admin/historial?mascota={id}` | `GET /api/mascotas/{id}` + `GET /api/historial/mascota/{id}` |
+
+Los dos reportes se pueden **exportar a CSV** (separado por `;`, compatible con
+Excel en español) o **imprimir / guardar como PDF** desde el navegador.
+
 Las acciones de crear y editar se realizan en **páginas independientes**
 (por ejemplo `/dashboard/registrar-mascota`, `/dashboard/admin/editar-usuario/{id}`),
 no en modales.

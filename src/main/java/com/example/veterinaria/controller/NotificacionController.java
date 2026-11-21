@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.veterinaria.modelo.Notificacion;
+import com.example.veterinaria.security.Autorizacion;
 import com.example.veterinaria.service.NotificacionService;
 
 @RestController
@@ -38,17 +39,36 @@ public class NotificacionController {
     }
 
     @GetMapping("/usuario/{idUsuario}")
-    public List<Notificacion> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
-        return notificacionService.findByUsuarioIdUsuario(idUsuario);
+    public ResponseEntity<List<Notificacion>> findByUsuarioIdUsuario(@PathVariable Long idUsuario) {
+        if (!Autorizacion.esPropioOAdmin(idUsuario)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(notificacionService.findByUsuarioIdUsuario(idUsuario));
     }
 
     @GetMapping("/usuario/{idUsuario}/pendientes")
-    public List<Notificacion> findByUsuarioIdUsuarioAndEstadoLeidaFalse(@PathVariable Long idUsuario) {
-        return notificacionService.findByUsuarioIdUsuarioAndEstadoLeidaFalse(idUsuario);
+    public ResponseEntity<List<Notificacion>> findByUsuarioIdUsuarioAndEstadoLeidaFalse(
+            @PathVariable Long idUsuario) {
+        if (!Autorizacion.esPropioOAdmin(idUsuario)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(
+                notificacionService.findByUsuarioIdUsuarioAndEstadoLeidaFalse(idUsuario));
     }
 
     @PatchMapping("/{id}/leida")
     public ResponseEntity<Notificacion> marcarComoLeida(@PathVariable Long id) {
+        var actual = Autorizacion.actual();
+
+        /* Sólo el destinatario de la notificación puede marcarla como leída. */
+        if (!Autorizacion.esAdmin() && (actual == null
+                || !notificacionService.findById(id)
+                        .map(n -> n.getUsuario() != null
+                                && n.getUsuario().getIdUsuario().equals(actual.idUsuario()))
+                        .orElse(false))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         return notificacionService.findById(id)
                 .map(notificacion -> {
                     notificacion.setEstadoLeida(true);

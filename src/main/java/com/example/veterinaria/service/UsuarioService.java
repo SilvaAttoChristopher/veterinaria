@@ -88,9 +88,15 @@ public class UsuarioService {
         if (cambios.getApellidos() != null) {
             existente.setApellidos(cambios.getApellidos());
         }
-        if (cambios.getEspecialidad() != null) {
+
+        /* La especialidad sólo la maneja un veterinario (o admin) sobre su
+           propia ficha. */
+        boolean esVeterinario = "VETERINARIO".equals(existente.getRol().getNombre());
+        if (cambios.getEspecialidad() != null && (esVeterinario || "ADMIN".equals(cambios.getRol() != null
+                ? cambios.getRol().getNombre() : null))) {
             existente.setEspecialidad(cambios.getEspecialidad());
         }
+
         existente.setCorreo(cambios.getCorreo());
         existente.setTelefono(cambios.getTelefono());
         existente.setDireccion(cambios.getDireccion());

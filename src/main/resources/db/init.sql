@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     especialidad  VARCHAR(100),
     fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     estado        VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
+    foto_perfil   VARCHAR(255),
     id_rol        BIGINT NOT NULL,
     CONSTRAINT fk_usuario_rol
         FOREIGN KEY (id_rol) REFERENCES rol(id_rol)

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.veterinaria.modelo.Cita;
+import com.example.veterinaria.security.Autorizacion;
 import com.example.veterinaria.service.CitaService;
 
 @RestController
@@ -30,8 +31,31 @@ public class CitaController {
     private CitaService citaService;
 
     @GetMapping
-    public List<Cita> findAll() {
-        return citaService.findAll();
+    public ResponseEntity<List<Cita>> findAll() {
+        /* El listado global queda para el admin: un cliente o un veterinario
+           deben usar los endpoints acotados por propietario. */
+        if (!Autorizacion.esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(citaService.findAll());
+    }
+
+    /** Citas de un cliente, deduciendo las mascotas que son suyas. */
+    @GetMapping("/cliente/{idUsuario}")
+    public ResponseEntity<List<Cita>> findByCliente(@PathVariable Long idUsuario) {
+        if (!Autorizacion.esPropioOAdmin(idUsuario)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(citaService.findByUsuario(idUsuario));
+    }
+
+    /** Citas asignadas a un veterinario, de cualquier fecha. */
+    @GetMapping("/veterinario/{idUsuario}")
+    public ResponseEntity<List<Cita>> findByVeterinario(@PathVariable Long idUsuario) {
+        if (!Autorizacion.esPropioOAdmin(idUsuario)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(citaService.findByVeterinario(idUsuario));
     }
 
     @GetMapping("/{id}")

@@ -78,7 +78,9 @@
 
         async function cargarCitas() {
             try {
-                const res = await fetch('/api/citas', { credentials: 'same-origin' });
+                const res = await fetch(`/api/citas/cliente/${usuarioActual.id}`, {
+                    credentials: 'same-origin'
+                });
                 if (!res.ok) return;
                 citas = await res.json();
                 filtrarCitas();

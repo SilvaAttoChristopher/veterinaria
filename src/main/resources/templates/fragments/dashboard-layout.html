@@ -12,15 +12,16 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
     <link rel="stylesheet" th:href="@{/css/dashboard.css}">
     <link rel="icon" type="image/png" th:href="@{/imagenes/favicon.ico}">
+    <link rel="stylesheet" th:href="@{/css/chatbot.css}">
 </head>
 <body>
     <!-- Sidebar fragment for CLIENTE -->
     <aside class="sidebar" th:fragment="sidebarCliente">
         <a th:href="@{/dashboard/perfil}" class="logo-dashboard">VetWeb</a>
         <div class="usuario-sidebar">
-            <img th:src="@{/imagenes/perfil.png}" alt="Imagen de usuario">
+            <img th:src="${fotoPerfilUrl} ?: @{/imagenes/perfil.png}" alt="Foto de perfil">
             <div>
-                <strong id="sidebarUserName" th:text="${usuario?.nombres + ' ' + usuario?.apellidos ?: 'Usuario'}">Usuario</strong>
+                <strong id="sidebarUserName" th:text="${usuarioActual != null ? usuarioActual : 'Usuario'}">Usuario</strong>
                 <span>Cliente</span>
             </div>
         </div>
@@ -66,9 +67,9 @@
     <aside class="sidebar" th:fragment="sidebarVeterinario">
         <a th:href="@{/dashboard/perfil-medico}" class="logo-dashboard">VetWeb</a>
         <div class="usuario-sidebar">
-            <img th:src="@{/imagenes/medico.png}" alt="Imagen de usuario">
+            <img th:src="${fotoPerfilUrl} ?: @{/imagenes/medico.png}" alt="Foto de perfil">
             <div>
-                <strong id="sidebarUserName" th:text="${usuario?.nombres + ' ' + usuario?.apellidos ?: 'Doctor'}">Doctor</strong>
+                <strong id="sidebarUserName" th:text="${usuarioActual != null ? usuarioActual : 'Doctor'}">Doctor</strong>
                 <span id="sidebarUserRole">Especialidad</span>
             </div>
         </div>
@@ -110,9 +111,9 @@
     <aside class="sidebar" th:fragment="sidebarAdmin">
         <a th:href="@{/dashboard/admin}" class="logo-dashboard">VetWeb</a>
         <div class="usuario-sidebar">
-            <img th:src="@{/imagenes/logo.png}" alt="Imagen de usuario">
+            <img th:src="${fotoPerfilUrl} ?: @{/imagenes/logo.png}" alt="Foto de perfil">
             <div>
-                <strong id="sidebarUserName" th:text="${usuario?.nombres + ' ' + usuario?.apellidos ?: 'Administrador'}">Administrador</strong>
+                <strong id="sidebarUserName" th:text="${usuarioActual != null ? usuarioActual : 'Administrador'}">Administrador</strong>
                 <span>Administración</span>
             </div>
         </div>
@@ -120,6 +121,10 @@
             <a th:href="@{/dashboard/admin}" th:classappend="${activePage == 'resumen'} ? 'activo' : ''">
                 <i class="bi bi-speedometer2"></i>
                 Resumen
+            </a>
+            <a th:href="@{/dashboard/perfil}" th:classappend="${activePage == 'perfil'} ? 'activo' : ''">
+                <i class="bi bi-person-circle"></i>
+                Perfil
             </a>
             <a th:href="@{/dashboard/admin/usuarios}" th:classappend="${activePage == 'usuarios'} ? 'activo' : ''">
                 <i class="bi bi-people-fill"></i>
@@ -133,9 +138,17 @@
                 <i class="bi bi-tag"></i>
                 Servicios
             </a>
-            <a th:href="@{/dashboard/admin/roles}" th:classappend="${activePage == 'roles'} ? 'activo' : ''">
+            <!--<a th:href="@{/dashboard/admin/roles}" th:classappend="${activePage == 'roles'} ? 'activo' : ''">
                 <i class="bi bi-shield-lock"></i>
                 Roles y Permisos
+            </a>-->
+            <a th:href="@{/dashboard/admin/citas}" th:classappend="${activePage == 'citas'} ? 'activo' : ''">
+                <i class="bi bi-calendar3"></i>
+                Citas
+            </a>
+            <a th:href="@{/dashboard/admin/historial}" th:classappend="${activePage == 'historial'} ? 'activo' : ''">
+                <i class="bi bi-journal-medical"></i>
+                Historial Médico
             </a>
             <a th:href="@{/dashboard/admin/boletas}" th:classappend="${activePage == 'boletas'} ? 'activo' : ''">
                 <i class="bi bi-receipt"></i>
@@ -163,6 +176,71 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
         <script th:src="@{/js/auth.js}"></script>
         <script th:src="@{/js/dashboard.js}"></script>
+
+        <!-- Chatbot visible para clientes y personal médico -->
+        <div id="chatbot-widget"
+            th:if="${rolActual == 'CLIENTE' or rolActual == 'VETERINARIO'}"
+            th:data-user="${#authentication.name}">
+
+            <button id="chatbot-toggle"
+                    type="button"
+                    aria-label="Abrir asistente virtual"
+                    aria-controls="chatbot-panel"
+                    aria-expanded="false">
+                <i class="bi bi-chat-dots-fill"></i>
+            </button>
+
+            <section id="chatbot-panel"
+                    role="dialog"
+                    aria-label="Asistente virtual CiruVet"
+                    aria-hidden="true"
+                    hidden>
+
+                <header class="chatbot-header">
+                    <div>
+                        <strong>Asistente CiruVet</strong>
+                        <small>Consultas y ayuda</small>
+                    </div>
+
+                    <button id="chatbot-close"
+                            type="button"
+                            aria-label="Cerrar chat">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </header>
+
+                <div id="chatbot-messages"
+                    class="chatbot-messages"
+                    aria-live="polite">
+                    <div class="chatbot-message bot">
+                        Hola. Soy el asistente virtual de CiruVet.
+                        ¿En qué puedo ayudarte?
+                    </div>
+                </div>
+
+                <form id="chatbot-form" class="chatbot-form">
+                    <textarea id="chatbot-input"
+                            rows="1"
+                            maxlength="1000"
+                            placeholder="Escribe tu pregunta..."
+                            aria-label="Escribe tu pregunta"
+                            required></textarea>
+
+                    <button id="chatbot-send"
+                            type="submit"
+                            aria-label="Enviar mensaje">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+
+                <p class="chatbot-disclaimer">
+                    Respuestas generadas por IA. No sustituyen la evaluación
+                    de un veterinario.
+                </p>
+            </section>
+        </div>
+
+        <script th:src="@{/js/chatbot.js}"></script>
     </div>
 </body>
 </html>

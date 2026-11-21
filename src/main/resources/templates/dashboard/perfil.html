@@ -23,10 +23,9 @@
             </div>
 
             <section class="perfil-card">
-
                 <div class="perfil-header">
                     <div class="perfil-usuario">
-                        <img th:src="@{/imagenes/perfil.png}" alt="Usuario">
+                        <img th:src="${fotoPerfilUrl} ?: @{/imagenes/perfil.png}" alt="Usuario">
                         <div>
                             <h3 id="perfilNombre">Cargando...</h3>
                             <p id="perfilCorreo">-</p>
@@ -82,9 +81,8 @@
             if (!result.success) return;
 
             const u = result.data;
-            document.getElementById('perfilNombre').textContent = `${u.nombres} ${u.apellidos}`;
+            document.getElementById('perfilNombre').textContent = u.nombres +" "+ u.apellidos;
             document.getElementById('perfilCorreo').textContent = u.correo || '';
-
             document.getElementById('campoNombres').textContent = u.nombres || '-';
             document.getElementById('campoApellidos').textContent = u.apellidos || '-';
             document.getElementById('campoCorreo').textContent = u.correo || '-';

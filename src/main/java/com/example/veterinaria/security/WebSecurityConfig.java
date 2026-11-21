@@ -1,10 +1,13 @@
 package com.example.veterinaria.security;
 
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -25,122 +28,125 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {        http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                /* ---------------- públicas ---------------- */
-                .requestMatchers("/", "/staff", "/index.html", "/favicon.ico").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/imagenes/**", "/pages/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro").permitAll()
-                .requestMatchers("/error").permitAll()
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        /* ---------------- públicas ---------------- */
+                        .requestMatchers("/", "/staff", "/index.html", "/favicon.ico").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/imagenes/**", "/pages/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro").permitAll()
+                        .requestMatchers("/error").permitAll()
 
-                /* ---------------- sólo ADMIN ----------------
-                   Se declaran antes de los comodines porque gana la primera coincidencia. */
-                .requestMatchers("/dashboard/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                .requestMatchers("/api/roles/**").hasRole("ADMIN")
-                .requestMatchers("/api/permisos/**").hasRole("ADMIN")
-                .requestMatchers("/api/rol-permisos/**").hasRole("ADMIN")
-                .requestMatchers("/api/boletas/**").hasRole("ADMIN")
-                .requestMatchers("/api/detalle-boletas/**").hasRole("ADMIN")
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
-                /* El borrado de datos de negocio es exclusivo del administrador:
-                   un cliente no debe poder eliminar la mascota de otro ni un
-                   veterinario una cita ajena. */
-                .requestMatchers(HttpMethod.DELETE, "/api/mascotas/**", "/api/citas/**",
-                        "/api/notificaciones/**", "/api/horarios/**", "/api/historial/**",
-                        "/api/cartillas/**", "/api/vacunaciones/**").hasRole("ADMIN")
+                        /* ---------------- sólo ADMIN ---------------- */
+                        .requestMatchers("/dashboard/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/{id}").access(WebSecurityConfig::esPropioOAdmin)
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/{id}").access(WebSecurityConfig::esPropioOAdmin)
+                        .requestMatchers("/api/usuarios", "/api/usuarios/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/mascotas", "/api/citas",
+                                "/api/notificaciones", "/api/cartillas", "/api/vacunaciones",
+                                "/api/detalle-boletas").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/historial").hasAnyRole("ADMIN", "VETERINARIO")
+                        .requestMatchers("/api/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/api/permisos/**").hasRole("ADMIN")
+                        .requestMatchers("/api/rol-permisos/**").hasRole("ADMIN")
+                        .requestMatchers("/api/boletas/**").hasRole("ADMIN")
+                        .requestMatchers("/api/detalle-boletas/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/mascotas/**", "/api/citas/**",
+                                "/api/notificaciones/**", "/api/horarios/**", "/api/historial/**",
+                                "/api/cartillas/**", "/api/vacunaciones/**").hasRole("ADMIN")
 
-                /* ---------------- sólo VETERINARIO ---------------- */
-                .requestMatchers(
-                        "/dashboard/perfil-medico", "/dashboard/editar-perfil-medico",
-                        "/dashboard/citas-vet", "/dashboard/mascotas-vet",
-                        "/dashboard/registrar-horario", "/dashboard/registrar-atencion/**",
-                        "/dashboard/editar-horario/**").hasRole("VETERINARIO")
+                        /* ---------------- sólo VETERINARIO ---------------- */
+                        .requestMatchers(
+                                "/dashboard/perfil-medico", "/dashboard/editar-perfil-medico",
+                                "/dashboard/citas-vet", "/dashboard/mascotas-vet",
+                                "/dashboard/mascota-vet/**",
+                                "/dashboard/registrar-horario", "/dashboard/registrar-atencion/**",
+                                "/dashboard/editar-horario/**").hasRole("VETERINARIO")
 
-                /* ---------------- sólo CLIENTE ---------------- */
-                .requestMatchers(
-                        "/dashboard/mascotas", "/dashboard/registrar-mascota",
-                        "/dashboard/editar-mascota/**", "/dashboard/mascota/**",
-                        "/dashboard/citas", "/dashboard/registrar-cita",
-                        "/dashboard/editar-cita/**", "/dashboard/cartilla",
-                        "/dashboard/registrar-vacunacion").hasRole("CLIENTE")
+                        /* ---------------- sólo CLIENTE ---------------- */
+                        .requestMatchers(
+                                "/dashboard/mascotas", "/dashboard/registrar-mascota",
+                                "/dashboard/editar-mascota/**", "/dashboard/mascota/**",
+                                "/dashboard/citas", "/dashboard/registrar-cita",
+                                "/dashboard/editar-cita/**", "/dashboard/cartilla",
+                                "/dashboard/registrar-vacunacion").hasRole("CLIENTE")
 
-                /* ---------------- cualquier autenticado ---------------- */
-                .requestMatchers("/dashboard/cambiar-password").authenticated()
-                .requestMatchers("/dashboard/**").authenticated()
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().permitAll()
-            )
-            .formLogin(form -> form
-                .loginProcessingUrl("/api/auth/login")
-                .usernameParameter("username")
-                .passwordParameter("password")
-                .successHandler((request, response, authentication) -> {
-                    String authority = authentication.getAuthorities().iterator().next().getAuthority();
-                    String redirectUrl;
+                        /* ---------------- cualquier autenticado ---------------- */
+                        .requestMatchers("/dashboard/cambiar-password").authenticated()
+                        .requestMatchers("/dashboard/**").authenticated()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll()
+                )
+                .formLogin(form -> form
+                        .loginProcessingUrl("/api/auth/login")
+                        .usernameParameter("username")
+                        .passwordParameter("password")
+                        .successHandler((request, response, authentication) -> {
+                            String authority = authentication.getAuthorities().iterator().next().getAuthority();
+                            String redirectUrl;
 
-                    switch (authority) {
-                        case "ROLE_CLIENTE":
-                            redirectUrl = "/dashboard/perfil";
-                            break;
-                        case "ROLE_VETERINARIO":
-                            redirectUrl = "/dashboard/perfil-medico";
-                            break;
-                        case "ROLE_ADMIN":
-                            redirectUrl = "/dashboard/admin";
-                            break;
-                        default:
-                            redirectUrl = "/";
-                    }
+                            switch (authority) {
+                                case "ROLE_CLIENTE":
+                                    redirectUrl = "/dashboard/perfil";
+                                    break;
+                                case "ROLE_VETERINARIO":
+                                    redirectUrl = "/dashboard/perfil-medico";
+                                    break;
+                                case "ROLE_ADMIN":
+                                    redirectUrl = "/dashboard/admin";
+                                    break;
+                                default:
+                                    redirectUrl = "/";
+                            }
 
-                    json(response, 200, "{\"mensaje\":\"Login exitoso\",\"rol\":\"" + authority
-                            + "\",\"redirect\":\"" + redirectUrl + "\"}");
-                })
-                .failureHandler((request, response, exception) ->
-                        json(response, 401, "{\"mensaje\":\"Credenciales incorrectas\"}"))
-            )
-            .logout(logout -> logout
-                .logoutUrl("/api/auth/logout")
-                .logoutSuccessHandler((request, response, authentication) ->
-                        json(response, 200, "{\"mensaje\":\"Logout exitoso\"}"))
-            )
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((request, response, authException) -> {
-                    if (request.getRequestURI().startsWith("/api/")) {
-                        json(response, 401, "{\"mensaje\":\"No autenticado\"}");
-                    } else {
-                        response.sendRedirect("/");
-                    }
-                })
-                .accessDeniedHandler((request, response, deniedException) -> {
-                    if (request.getRequestURI().startsWith("/api/")) {
-                        json(response, 403,
-                                "{\"mensaje\":\"No tiene permisos para realizar esta accion\"}");
-                        return;
-                    }
+                            json(response, 200, "{\"mensaje\":\"Login exitoso\",\"rol\":\"" + authority
+                                    + "\",\"redirect\":\"" + redirectUrl + "\"}");
+                        })
+                        .failureHandler((request, response, exception) ->
+                                json(response, 401, "{\"mensaje\":\"Credenciales incorrectas\"}"))
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                json(response, 200, "{\"mensaje\":\"Logout exitoso\"}"))
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                json(response, 401, "{\"mensaje\":\"No autenticado\"}");
+                            } else {
+                                // S1: Redirige al inicio indicando que abra el modal de login
+                                response.sendRedirect("/?login=true");
+                            }
+                        })
+                        .accessDeniedHandler((request, response, deniedException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                json(response, 403,
+                                        "{\"mensaje\":\"No tiene permisos para realizar esta accion\"}");
+                                return;
+                            }
 
-                    /* En páginas se redirige al inicio del propio rol en lugar de
-                       mostrar un 403, para no dejar al usuario en una página de error. */
-                    String destino = "/";
-                    Authentication auth =
-                            SecurityContextHolder.getContext().getAuthentication();
+                            String destino = "/";
+                            Authentication auth =
+                                    SecurityContextHolder.getContext().getAuthentication();
 
-                    if (auth != null && auth.isAuthenticated()
-                            && tieneRol(auth, "ROLE_ADMIN")) {
-                        destino = "/dashboard/admin";
-                    } else if (auth != null && auth.isAuthenticated()
-                            && tieneRol(auth, "ROLE_VETERINARIO")) {
-                        destino = "/dashboard/perfil-medico";
-                    } else if (auth != null && auth.isAuthenticated()) {
-                        destino = "/dashboard/perfil";
-                    }
-                    response.sendRedirect(destino);
-                })
-            );
+                            if (auth != null && auth.isAuthenticated()
+                                    && tieneRol(auth, "ROLE_ADMIN")) {
+                                destino = "/dashboard/admin";
+                            } else if (auth != null && auth.isAuthenticated()
+                                    && tieneRol(auth, "ROLE_VETERINARIO")) {
+                                destino = "/dashboard/perfil-medico";
+                            } else if (auth != null && auth.isAuthenticated()) {
+                                destino = "/dashboard/perfil";
+                            }
+                            response.sendRedirect(destino);
+                        })
+                );
 
         return http.build();
     }
@@ -150,10 +156,33 @@ public class WebSecurityConfig {
                 .anyMatch(a -> a.getAuthority().equals(rol));
     }
 
-    /**
-     * Escribe una respuesta JSON en UTF-8. Sin charset explícito, el contenedor
-     * responde en ISO-8859-1 y los acentos (ej. "acción") llegan corruptos.
-     */
+    private static AuthorizationDecision esPropioOAdmin(
+            Supplier<? extends Authentication> authentication,
+            RequestAuthorizationContext context) {
+
+        Authentication auth = authentication.get();
+        if (auth == null || !auth.isAuthenticated()) {
+            return new AuthorizationDecision(false);
+        }
+
+        if (tieneRol(auth, "ROLE_ADMIN")) {
+            return new AuthorizationDecision(true);
+        }
+
+        String idRuta = context.getVariables().get("id");
+        Object principal = auth.getPrincipal();
+
+        if (idRuta == null || !(principal instanceof UsuarioPrincipal usuario)) {
+            return new AuthorizationDecision(false);
+        }
+
+        try {
+            return new AuthorizationDecision(usuario.getIdUsuario().equals(Long.parseLong(idRuta)));
+        } catch (NumberFormatException e) {
+            return new AuthorizationDecision(false);
+        }
+    }
+
     private static void json(HttpServletResponse response, int status, String body)
             throws java.io.IOException {
         response.setStatus(status);

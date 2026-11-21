@@ -22,7 +22,7 @@
 
                 <div class="perfil-header">
                     <div class="perfil-usuario">
-                        <img th:src="@{/imagenes/medico.png}" alt="Veterinario">
+                        <img th:src="${fotoPerfilUrl} ?: @{/imagenes/medico.png}" alt="Veterinario">
                         <div>
                             <h3 id="perfilNombre">Cargando...</h3>
                             <p id="perfilCorreo">-</p>

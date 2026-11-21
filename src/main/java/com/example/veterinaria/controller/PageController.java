@@ -7,6 +7,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.example.veterinaria.modelo.Usuario;
+import com.example.veterinaria.service.UsuarioService;
 
 @Controller
 public class PageController {
@@ -36,6 +39,24 @@ public class PageController {
         }
         return authentication.getName();
     }
+
+@Autowired
+private UsuarioService usuarioService;
+
+@ModelAttribute("fotoPerfilUrl")
+public String fotoPerfilUrl(Authentication authentication) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+        return null;
+    }
+
+    Usuario usuario = usuarioService.findByUsername(authentication.getName()).orElse(null);
+    if (usuario == null || usuario.getFotoPerfil() == null) {
+        return null;
+    }
+
+    return "/api/perfil/foto?v=" + usuario.getFotoPerfil();
+}
+
     @GetMapping("/")
     public String index() {
         return "index";
@@ -147,6 +168,14 @@ public class PageController {
         return conActiva(model, "mascotas", "dashboard/mascotas-vet");
     }
 
+    
+    @GetMapping("/dashboard/mascota-vet/{id}")
+    public String consultarMascotaVet(@PathVariable Long id, Model model) {
+        model.addAttribute("idMascota", id);
+        return conActiva(model, "mascotas", "dashboard/mascota-consulta-vet");
+    }
+
+
     @GetMapping("/dashboard/citas-vet")
     public String dashboardCitasVet(Model model) {
         return conActiva(model, "citas", "dashboard/citas-vet");
@@ -211,6 +240,16 @@ public class PageController {
     @GetMapping("/dashboard/admin/boletas")
     public String adminBoletas(Model model) {
         return conActiva(model, "boletas", "dashboard/admin/boletas");
+    }
+
+    @GetMapping("/dashboard/admin/citas")
+    public String adminCitas(Model model) {
+        return conActiva(model, "citas", "dashboard/admin/citas");
+    }
+
+    @GetMapping("/dashboard/admin/historial")
+    public String adminHistorial(Model model) {
+        return conActiva(model, "historial", "dashboard/admin/historial");
     }
 
     private String conActiva(Model model, String activePage, String vista) {

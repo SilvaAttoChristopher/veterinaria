@@ -1010,13 +1010,14 @@ body {
    BOTONES INFERIORES
    ================================================== */
 
+
 .acciones-editar {
     display: flex;
-
     justify-content: flex-end;
-
     gap: 12px;
+    margin-top: 24px;
 }
+
 
 .btn-cancelar,
 .btn-guardar {
@@ -1703,25 +1704,18 @@ body {
     border-radius: 7px;
 }
 
+
 .tabla-citas-header,
 .fila-cita {
     display: grid;
-
-    grid-template-columns:
-        1.1fr
-        0.8fr
-        0.7fr
-        1.5fr
-        1.3fr
-        0.8fr
-        1fr;
-
+    grid-template-columns: minmax(220px, 1.5fr) minmax(130px, 1fr) minmax(100px, 0.8fr) minmax(200px, 1.2fr);
     align-items: center;
-
-    gap: 10px;
-
-    padding: 13px 20px;
+    gap: 16px;
+    padding: 14px 24px;
+    width: 100%;
+    box-sizing: border-box;
 }
+
 
 .tabla-citas-header {
     background-color: #f7f8fa;
@@ -1824,8 +1818,11 @@ body {
 
 .acciones-cita {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
+    min-width: 0;
 }
 
 .btn-cita-secundario,
@@ -1865,17 +1862,39 @@ body {
 
 /* responsive citas */
 
-@media (max-width: 1000px) {
+.tabla-citas {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
 
+.tabla-citas-header > *,
+.fila-cita > * {
+    min-width: 0;
+}
+
+.nombre-cita-mascota {
+    min-width: 0;
+}
+
+.nombre-cita-mascota > div:last-child {
+    min-width: 0;
+}
+
+.nombre-cita-mascota strong,
+.nombre-cita-mascota span {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 1000px) {
     .tabla-citas {
         overflow-x: auto;
     }
 
     .tabla-citas-header,
     .fila-cita {
-        min-width: 950px;
+        min-width: 760px;
     }
-
 }
 
 @media (max-width: 768px) {
@@ -1959,4 +1978,223 @@ body {
 
 .password-coincidencia.error {
     color: #dc2626;
+}
+
+.dato-perfil .acciones-editar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px !important;
+}
+
+.dato-perfil .acciones-editar .btn-cancelar,
+.dato-perfil .acciones-editar .btn-eliminar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 38px;
+    padding: 0 12px;
+    margin: 0;
+    box-sizing: border-box;
+    border-radius: 5px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.dato-perfil .acciones-editar .btn-cancelar {
+    background-color: #fff;
+    color: #0078b5;
+    border: 1px solid #0085c7;
+}
+
+.dato-perfil .acciones-editar .btn-eliminar {
+    background-color: #fff;
+    color: #c43c38;
+    border: 1px solid #d9534f;
+}
+
+.dato-perfil .acciones-editar .btn-cancelar:hover {
+    background-color: #f1f9fd;
+}
+
+.dato-perfil .acciones-editar .btn-eliminar:hover {
+    background-color: #fff4f4;
+}
+
+/* ==================================================
+   Reportes (admin): citas y historial médico
+   ================================================== */
+
+.acciones-reporte {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filtros-reporte {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+
+    margin-bottom: 20px;
+}
+
+.filtros-reporte .busqueda-citas {
+    max-width: 240px;
+}
+
+.filtros-reporte .busqueda-citas input[type="date"] {
+    min-width: 130px;
+}
+
+.tabla-reporte {
+    overflow: hidden;
+
+    background-color: white;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 7px;
+}
+
+.tabla-reporte-header,
+.fila-reporte {
+    display: grid;
+
+    grid-template-columns: minmax(190px, 1.3fr) minmax(130px, 1fr) minmax(130px, 1fr)
+        minmax(160px, 1.1fr) minmax(95px, 0.7fr) minmax(115px, 0.9fr);
+
+    align-items: center;
+    gap: 16px;
+
+    padding: 14px 24px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tabla-reporte-header {
+    background-color: #f7f8fa;
+
+    border-bottom: 1px solid #e4e7eb;
+
+    color: #555b66;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.fila-reporte {
+    min-height: 64px;
+
+    border-bottom: 1px solid #eceef1;
+
+    font-size: 11px;
+}
+
+.fila-reporte:last-child {
+    border-bottom: none;
+}
+
+.fila-reporte p {
+    margin: 0;
+
+    color: #5d626d;
+
+    font-size: 11px;
+}
+
+.fila-reporte .secundario {
+    color: #8a909c;
+
+    font-size: 10px;
+}
+
+.fila-reporte .acciones-cita {
+    justify-content: flex-end;
+}
+
+@media (max-width: 1200px) {
+    .tabla-reporte {
+        overflow-x: auto;
+    }
+
+    .tabla-reporte-header,
+    .fila-reporte {
+        min-width: 980px;
+    }
+}
+
+/* atenciones del reporte de historial */
+
+.atencion-reporte {
+    padding: 16px 0;
+
+    border-bottom: 1px solid #eceef1;
+}
+
+.atencion-reporte:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.atencion-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-bottom: 14px;
+
+    color: #08006b;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.atencion-cabecera span {
+    color: #5d626d;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.atencion-reporte .datos-grid {
+    gap: 16px 28px;
+}
+
+/* impresión del reporte: sólo el contenido, sin menús ni botones */
+
+@media print {
+    .sidebar,
+    .filtros-reporte,
+    .acciones-reporte,
+    .acciones-cita,
+    .acciones-mascota,
+    .btn-nueva-cita {
+        display: none !important;
+    }
+
+    .dashboard {
+        display: block;
+    }
+
+    .contenido-dashboard {
+        padding: 0;
+    }
+
+    .tabla-reporte-header,
+    .fila-reporte {
+        padding: 8px 10px;
+    }
+
+    body {
+        background-color: white;
+    }
 }

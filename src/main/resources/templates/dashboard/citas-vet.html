@@ -81,11 +81,12 @@
 
         async function cargarCitas() {
             try {
-                const res = await fetch('/api/citas', { credentials: 'same-origin' });
+                const res = await fetch(`/api/citas/veterinario/${usuarioActual.id}`, {
+                    credentials: 'same-origin'
+                });
                 if (!res.ok) return;
 
-                const todas = await res.json();
-                citas = todas.filter(c => c.veterinario?.idUsuario === usuarioActual.id);
+                citas = await res.json();
                 filtrarCitas();
             } catch (e) {
                 console.error(e);
@@ -160,7 +161,7 @@
                                 <span class="estado-cita ${est.clase}">${est.texto}</span>
                             </div>
                             <div class="acciones-cita">
-                                <a href="/dashboard/mascota/${c.mascota?.idMascota}" class="btn-cita-secundario">
+                                <a href="/dashboard/mascota-vet/${c.mascota?.idMascota}" class="btn-cita-secundario">
                                     Ver Mascota
                                 </a>
                                 ${c.estado === 'PROGRAMADA' ? `

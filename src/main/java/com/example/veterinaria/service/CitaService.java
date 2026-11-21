@@ -3,10 +3,15 @@ package com.example.veterinaria.service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,12 +48,69 @@ public class CitaService {
         return citaRepository.findByMascotaIdMascota(idMascota);
     }
 
+    /** Citas de las mascotas que pertenecen a un cliente. */
+    public List<Cita> findByUsuario(Long idUsuario) {
+        return citaRepository.findByMascotaClienteIdUsuario(idUsuario);
+    }
+
+    /** Citas asignadas a un veterinario, de cualquier fecha. */
+    public List<Cita> findByVeterinario(Long idUsuario) {
+        return citaRepository.findByVeterinarioIdUsuario(idUsuario);
+    }
+
     public List<Cita> findByUsuarioIdUsuarioAndFecha(Long idUsuario, LocalDate fecha) {
         return citaRepository.findByVeterinarioIdUsuarioAndFecha(idUsuario, fecha);
     }
 
     public List<Cita> findByEstado(String estado) {
         return citaRepository.findByEstado(estado);
+    }
+
+    /**
+     * Citas para el reporte del administrador. Los filtros que llegan nulos (o el
+     * estado en blanco) no restringen el resultado, de modo que el mismo método
+     * sirve para el listado completo y para el recorte por fechas, estado,
+     * veterinario, mascota o servicio.
+     */
+    public List<Cita> buscarParaReporte(LocalDate desde, LocalDate hasta, String estado,
+            Long idVeterinario, Long idMascota, Long idServicio) {
+
+        Specification<Cita> filtros = (root, query, cb) -> {
+            /* JOIN FETCH: la respuesta trae mascota, dueño, veterinario y servicio en
+               una sola consulta, en lugar de una consulta extra por cada cita. */
+            root.fetch("mascota", JoinType.INNER).fetch("cliente", JoinType.INNER);
+            root.fetch("veterinario", JoinType.INNER);
+            root.fetch("servicio", JoinType.INNER);
+
+            List<Predicate> condiciones = new ArrayList<>();
+
+            if (desde != null) {
+                condiciones.add(cb.greaterThanOrEqualTo(root.get("fecha"), desde));
+            }
+            if (hasta != null) {
+                condiciones.add(cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+            }
+            if (estado != null && !estado.isBlank()) {
+                condiciones.add(cb.equal(root.get("estado"), estado.trim().toUpperCase()));
+            }
+            if (idVeterinario != null) {
+                condiciones.add(cb.equal(root.get("veterinario").get("idUsuario"), idVeterinario));
+            }
+            if (idMascota != null) {
+                condiciones.add(cb.equal(root.get("mascota").get("idMascota"), idMascota));
+            }
+            if (idServicio != null) {
+                condiciones.add(cb.equal(root.get("servicio").get("idServicio"), idServicio));
+            }
+
+            query.orderBy(cb.desc(root.get("fecha")), cb.desc(root.get("hora")));
+
+            return condiciones.isEmpty()
+                    ? cb.conjunction()
+                    : cb.and(condiciones.toArray(new Predicate[0]));
+        };
+
+        return citaRepository.findAll(filtros);
     }
 
     public boolean verificarDisponibilidad(Long idVeterinario, LocalDate fecha, LocalTime hora) {
