@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/dashboard-layout :: head('Pago Cancelado | VetWeb')}">
+    <title>Pago Cancelado | VetWeb</title>
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <div th:replace="${rolActual == 'ADMIN'}
+            ? ~{fragments/dashboard-layout :: sidebarAdmin}
+            : (${rolActual == 'VETERINARIO'}
+                ? ~{fragments/dashboard-layout :: sidebarVeterinario}
+                : ~{fragments/dashboard-layout :: sidebarCliente})"></div>
+
+        <main class="contenido-dashboard">
+
+            <section class="registro-mascota-card"
+                style="max-width:640px;margin:40px auto;text-align:center;padding:48px 32px;">
+
+                <i class="bi bi-x-circle-fill" style="font-size:72px;color:#dc3545;"></i>
+
+                <h2 style="margin-top:16px;">Pago cancelado</h2>
+
+                <p style="color:#666;margin-top:8px;">
+                    No se realizó ningún cargo. Tu reserva quedó liberada y el horario
+                    vuelve a estar disponible.
+                </p>
+
+                <div style="margin-top:28px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                    <a th:href="@{/dashboard/registrar-cita}" class="btn-nueva-cita">
+                        <i class="bi bi-plus-lg"></i>
+                        Intentar de nuevo
+                    </a>
+                    <a th:href="@{/dashboard/citas}" class="btn-cita-secundario">
+                        Ver mis citas
+                    </a>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <div th:replace="~{fragments/dashboard-layout :: scripts}"></div>
+
+</body>
+
+</html>

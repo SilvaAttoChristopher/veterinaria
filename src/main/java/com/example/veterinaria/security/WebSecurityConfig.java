@@ -36,6 +36,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/", "/staff", "/index.html", "/favicon.ico").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/imagenes/**", "/pages/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/registro").permitAll()
+                        /* Webhook de Stripe: lo llama Stripe con su firma, sin sesión. */
+                        .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
                         .requestMatchers("/error").permitAll()
 
                         /* ---------------- sólo ADMIN ---------------- */
@@ -52,6 +54,10 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/rol-permisos/**").hasRole("ADMIN")
                         .requestMatchers("/api/boletas/**").hasRole("ADMIN")
                         .requestMatchers("/api/detalle-boletas/**").hasRole("ADMIN")
+                        /* Pagos: clientes y administradores; el webhook ya quedó público. */
+                        .requestMatchers("/api/pagos/**").hasAnyRole("CLIENTE", "ADMIN")
+                        /* Páginas de retorno de Stripe (éxito / cancelación). */
+                        .requestMatchers("/pago/exito", "/pago/cancelado").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/servicios/**", "/api/vacunas/**").hasRole("ADMIN")

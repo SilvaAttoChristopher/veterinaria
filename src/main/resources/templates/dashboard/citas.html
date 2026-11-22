@@ -43,6 +43,7 @@
                     <select id="filtroEstado" onchange="filtrarCitas()">
                         <option value="">Todos los estados</option>
                         <option value="PROGRAMADA">Programada</option>
+                        <option value="PENDIENTE_PAGO">Pendiente de pago</option>
                         <option value="ATENDIDA">Atendida</option>
                         <option value="CANCELADA">Cancelada</option>
                         <option value="NO_ASISTIO">No Asistió</option>
@@ -98,6 +99,7 @@
 
         const ESTADOS = {
             'PROGRAMADA': { clase: 'pendiente', texto: 'Programada' },
+            'PENDIENTE_PAGO': { clase: 'pendiente', texto: 'Pendiente de pago' },
             'ATENDIDA': { clase: 'atendida', texto: 'Atendida' },
             'CANCELADA': { clase: 'cancelada', texto: 'Cancelada' },
             'NO_ASISTIO': { clase: 'cancelada', texto: 'No Asistió' }
@@ -157,7 +159,16 @@
                                 <span class="estado-cita ${est.clase}">${est.texto}</span>
                             </div>
                             <div class="acciones-cita">
-                                ${c.estado === 'PROGRAMADA' ? `
+                                ${c.estado === 'PENDIENTE_PAGO' ? `
+                                    <a href="#" class="btn-nueva-cita"
+                                        onclick="pagarCita(${c.idCita}); return false;">
+                                        Pagar
+                                    </a>
+                                    <a href="#" class="btn-cita-cancelar"
+                                        onclick="cancelarCita(${c.idCita}); return false;">
+                                        Cancelar
+                                    </a>
+                                ` : c.estado === 'PROGRAMADA' ? `
                                     <a href="/dashboard/editar-cita/${c.idCita}" class="btn-cita-secundario">
                                         Editar
                                     </a>
@@ -175,6 +186,28 @@
                     `;
                 }).join('')}
             `;
+        }
+
+        /** Reabre el pago de una cita reserva sin pagar: va directo a Stripe. */
+        async function pagarCita(id) {
+            try {
+                const res = await fetch('/api/pagos/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idCita: id }),
+                    credentials: 'same-origin'
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert(data.mensaje || 'No se pudo iniciar el pago');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
         }
 
         async function cancelarCita(id) {

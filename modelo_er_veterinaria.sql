@@ -133,7 +133,7 @@ CREATE TABLE public.cita (
     hora time without time zone NOT NULL,
     estado character varying(20) DEFAULT 'PROGRAMADA'::character varying NOT NULL,
     motivo character varying(200),
-    CONSTRAINT chk_cita_estado CHECK (((estado)::text = ANY ((ARRAY['PROGRAMADA'::character varying, 'ATENDIDA'::character varying, 'CANCELADA'::character varying, 'NO_ASISTIO'::character varying])::text[])))
+    CONSTRAINT chk_cita_estado CHECK (((estado)::text = ANY ((ARRAY['PROGRAMADA'::character varying, 'ATENDIDA'::character varying, 'CANCELADA'::character varying, 'NO_ASISTIO'::character varying, 'PENDIENTE_PAGO'::character varying])::text[])))
 );
 
 
@@ -611,9 +611,11 @@ ALTER TABLE ONLY public.servicio
 --
 -- Name: cita uq_cita_veterinario_fecha_hora; Type: CONSTRAINT; Schema: public; Owner: -
 --
+-- Índice único PARCIAL: un horario no puede tener dos citas activas, pero una cita
+-- CANCELADA libera el horario para poder reagendarlo.
+--
 
-ALTER TABLE ONLY public.cita
-    ADD CONSTRAINT uq_cita_veterinario_fecha_hora UNIQUE (id_veterinario, fecha, hora);
+CREATE UNIQUE INDEX uq_cita_veterinario_fecha_hora ON public.cita USING btree (id_veterinario, fecha, hora) WHERE ((estado)::text <> 'CANCELADA'::text);
 
 
 --

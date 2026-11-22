@@ -12,13 +12,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Size;
 
 @Entity
-@Table(name = "cita", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"id_veterinario", "fecha", "hora"})
-})
+/* El horario único lo garantiza un índice único PARCIAL en la base
+   (uq_cita_veterinario_fecha_hora, WHERE estado <> 'CANCELADA'): una cita
+   cancelada debe liberar el horario, algo que un UNIQUE normal impide. */
+@Table(name = "cita")
 public class Cita {
 
     @Id

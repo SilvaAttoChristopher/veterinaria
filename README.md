@@ -6,6 +6,7 @@ Aplicativo web para la gestión integral de una veterinaria, desarrollado con Sp
 
 - **Backend:** Spring Boot 4.1.1, Java 17, Spring Data JPA, Hibernate, Bean Validation
 - **Base de datos:** PostgreSQL 16
+- **Pagos:** Stripe Checkout (pasarela de pago alojada, moneda PEN)
 - **Frontend:** Thymeleaf + Bootstrap 5 + Bootstrap Icons (JavaScript vanilla)
 - **Infraestructura:** Docker Compose (multi-stage build)
 
@@ -116,18 +117,115 @@ Las acciones de crear y editar se realizan en **páginas independientes**
 (por ejemplo `/dashboard/registrar-mascota`, `/dashboard/admin/editar-usuario/{id}`),
 no en modales.
 
+## Pagos con Stripe
+
+Al agendar una cita el sistema cobra el precio del servicio con **Stripe Checkout**
+y la cita sólo queda `PROGRAMADA` cuando el pago es aprobado.
+
+### Flujo
+
+1. `POST /api/pagos/checkout` crea la cita con estado `PENDIENTE_PAGO` (reserva el
+   horario) y una sesión de Checkout; el navegador se redirige a Stripe.
+2. El cliente paga en la página de Stripe y vuelve a `/pago/exito` (o `/pago/cancelado`).
+3. **`POST /api/pagos/webhook`** (firma verificada) confirma el pago → la cita pasa a
+   `PROGRAMADA` y el `Pago` a `PAGADO`. Es la vía definitiva: funciona aunque el
+   navegador no vuelva.
+4. Si el pago se abandona, la sesión expira (`checkout.session.expired`) y la
+   reserva se libera. También se libera sola a los 30 minutos y desde el botón
+   *Cancelar* de "Mis citas".
+
+La creación directa de citas (`POST /api/citas`) quedó reservada al administrador,
+para que nadie pueda esquivar el pago; una cita `PENDIENTE_PAGO` no puede marcarse
+como `PROGRAMADA` desde el formulario.
+
+### Configuración
+
+| Variable de entorno | Propiedad | Descripción |
+|---|---|---|
+| `STRIPE_API_KEY` | `stripe.api-key` | Clave secreta (`sk_test_...` / `sk_live_...`) |
+| `STRIPE_WEBHOOK_SECRET` | `stripe.webhook-secret` | Secreto del endpoint (`whsec_...`) |
+| `STRIPE_BASE_URL` | `stripe.base-url` | **Opcional.** Fija la URL pública de los retornos |
+
+`STRIPE_BASE_URL` no hace falta configurarlo: la app arma los enlaces de retorno
+(`success_url` / `cancel_url`) con la URL de la misma petición que crea la sesión,
+respetando los encabezados `X-Forwarded-Proto` y `X-Forwarded-Host` del proxy.
+Por eso funciona aunque el dominio del deploy cambie. Definirla sólo tiene sentido
+si se quiere forzar un dominio distinto del que llega la petición.
+
+Sin clave, el cobro responde `503` y el resto de la app sigue funcionando.
+
+```bash
+cp .env.example .env      # y completa tus claves (el .env no se commitea)
+./run.sh                  # arranca cargando las variables del .env
+```
+
+También sirve exportarlas a mano:
+
+```bash
+export STRIPE_API_KEY=sk_test_...
+export STRIPE_WEBHOOK_SECRET=whsec_...
+./mvnw spring-boot:run
+```
+
+### Probar en local
+
+```bash
+# Expone el webhook de Stripe hacia el servidor local
+stripe listen --forward-to localhost:8080/api/pagos/webhook
+# Copia el whsec_... que imprime y úsalo como STRIPE_WEBHOOK_SECRET
+```
+
+> **Atención con el webhook:** a diferencia de los retornos (que se deducen de la
+> petición), la URL del endpoint de webhook vive en el dashboard de Stripe y es
+> fija. Si cambia el dominio del hay que editar el endpoint en
+> *Developers → Webhooks* o volver a correr `stripe listen` en local.
+
+| Endpoint | Descripción |
+|---|---|
+| `POST /api/pagos/checkout` | Crea la reserva y devuelve la URL de pago |
+| `POST /api/pagos/webhook` | Eventos de Stripe (público, firma verificada) |
+| `GET /pago/exito` | Retorno exitoso: confirma y muestra el resultado |
+| `GET /pago/cancelado` | Retorno cancelado: libera la reserva |
+
+Tarjetas de prueba de Stripe: `4242 4242 4242 4242` (aprobada),
+`4000 0000 0000 0002` (rechazada). Fecha futura y CVC cualquiera.
+
+### Migración de la base de datos
+
+`init.sql` ya incluye estos cambios para instalaciones nuevas. En una base ya
+existente hay que aplicarlos a mano una sola vez:
+
+```sql
+-- 1) El nuevo estado de reserva de pago
+ALTER TABLE cita DROP CONSTRAINT chk_cita_estado;
+ALTER TABLE cita ADD CONSTRAINT chk_cita_estado
+    CHECK (estado IN ('PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_ASISTIO', 'PENDIENTE_PAGO'));
+
+-- 2) El horario único pasa a índice PARCIAL: dos citas activas no pueden compartir
+--    horario, pero una CANCELADA lo libera para poder reagendarlo.
+ALTER TABLE cita DROP CONSTRAINT uq_cita_veterinario_fecha_hora;
+-- (si la restricción la creó Hibernate se llama uk<cadena>: ver pg_constraint)
+CREATE UNIQUE INDEX uq_cita_veterinario_fecha_hora
+    ON cita (id_veterinario, fecha, hora) WHERE estado <> 'CANCELADA';
+```
+
+La tabla `pago` la crea Hibernate al arrancar (`ddl-auto=update`); `init.sql`
+también la incluye.
+
 ## Control de acceso
 
 `WebSecurityConfig` aplica autorización por rol. Reglas principales:
 
-- **Público:** `/`, `/staff`, recursos estáticos, `POST /api/auth/login`, `POST /api/auth/registro`
+- **Público:** `/`, `/staff`, recursos estáticos, `POST /api/auth/login`, `POST /api/auth/registro`,
+  `POST /api/pagos/webhook` (lo llama Stripe con su firma)
 - **Sólo `ADMIN`:** `/dashboard/admin/**`, `/api/usuarios/**`, `/api/roles/**`, `/api/permisos/**`,
   `/api/boletas/**`, y cualquier `POST`/`PUT`/`DELETE` sobre `/api/servicios` y `/api/vacunas`
 - **Sólo `ADMIN` (borrados):** `DELETE` sobre mascotas, citas, horarios, historiales,
   cartillas, vacunaciones y notificaciones
 - **Sólo `VETERINARIO`:** páginas de perfil médico, citas y horarios
 - **Sólo `CLIENTE`:** páginas de mascotas, citas y cartilla
-- **Resto:** cualquier usuario autenticado
+- **Resto:** cualquier usuario autenticado (incluye `/pago/exito` y `/pago/cancelado`,
+  y `/api/pagos/**` para `CLIENTE` y `ADMIN`)
 
 El acceso denegado devuelve `403` con JSON en `/api/**` y redirige al inicio del
 propio rol en las páginas.
@@ -149,6 +247,7 @@ propio rol en las páginas.
 | Historial | Atención clínica de una mascota |
 | Servicio | Servicio ofrecido por la veterinaria |
 | Cita | Reserva de atención |
+| Pago | Cobro de una cita contra Stripe (sesión, monto, estado) |
 | Boleta | Comprobante de pago |
 | DetalleBoleta | Servicios incluidos en una boleta |
 | Rol | Tipo de usuario |

@@ -172,9 +172,12 @@ public class CitaService {
         if (mascota.getCliente() != null) {
             Notificacion notificacion = new Notificacion();
             notificacion.setUsuario(mascota.getCliente());
-            notificacion.setTipo("CITA_PROXIMA");
+            boolean pendienteDePago = PagoService.CITA_PENDIENTE_PAGO.equals(cita.getEstado());
+            notificacion.setTipo(pendienteDePago ? "CITA_RESERVADA" : "CITA_PROXIMA");
             notificacion.setMensaje(String.format(
-                    "Su cita para %s esta programada para el %s a las %s",
+                    pendienteDePago
+                            ? "Su cita para %s quedo reservada (pendiente de pago) para el %s a las %s"
+                            : "Su cita para %s esta programada para el %s a las %s",
                     mascota.getNombre(),
                     cita.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                     cita.getHora()));

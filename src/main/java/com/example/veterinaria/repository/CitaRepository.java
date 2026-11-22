@@ -1,6 +1,7 @@
 package com.example.veterinaria.repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,7 @@ public interface CitaRepository extends JpaRepository<Cita, Long>, JpaSpecificat
     List<Cita> findByVeterinarioIdUsuarioAndFecha(Long idUsuario, LocalDate fecha);
 
     List<Cita> findByEstado(String estado);
+
+    List<Cita> findByVeterinarioIdUsuarioAndFechaAndHoraAndEstado(
+            Long idUsuario, LocalDate fecha, LocalTime hora, String estado);
 }

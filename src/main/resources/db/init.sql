@@ -179,14 +179,36 @@ CREATE TABLE IF NOT EXISTS cita (
         FOREIGN KEY (id_servicio) REFERENCES servicio(id_servicio)
         ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT chk_cita_estado
-        CHECK (estado IN ('PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_ASISTIO')),
-    CONSTRAINT uq_cita_veterinario_fecha_hora
-        UNIQUE (id_veterinario, fecha, hora)
+        CHECK (estado IN ('PROGRAMADA', 'ATENDIDA', 'CANCELADA', 'NO_ASISTIO', 'PENDIENTE_PAGO'))
 );
 CREATE INDEX IF NOT EXISTS idx_cita_mascota ON cita(id_mascota);
 CREATE INDEX IF NOT EXISTS idx_cita_veterinario ON cita(id_veterinario);
 CREATE INDEX IF NOT EXISTS idx_cita_servicio ON cita(id_servicio);
 CREATE INDEX IF NOT EXISTS idx_cita_fecha ON cita(fecha);
+-- Índice único PARCIAL: un horario no puede tener dos citas activas, pero una cita
+-- CANCELADA libera el horario para poder reagendarlo.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cita_veterinario_fecha_hora
+    ON cita(id_veterinario, fecha, hora) WHERE estado <> 'CANCELADA';
+
+-- Pago (Stripe Checkout)
+CREATE TABLE IF NOT EXISTS pago (
+    id_pago                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_cita                  BIGINT NOT NULL,
+    monto                    NUMERIC(10,2) NOT NULL,
+    moneda                   VARCHAR(10) NOT NULL,
+    estado                   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    fecha_creacion           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_pago               TIMESTAMP,
+    stripe_session_id        VARCHAR(255) UNIQUE,
+    stripe_payment_intent_id VARCHAR(255),
+    CONSTRAINT fk_pago_cita
+        FOREIGN KEY (id_cita) REFERENCES cita(id_cita)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_pago_estado
+        CHECK (estado IN ('PENDIENTE', 'PAGADO', 'CANCELADO', 'FALLIDO')),
+    CONSTRAINT chk_pago_monto CHECK (monto > 0)
+);
+CREATE INDEX IF NOT EXISTS idx_pago_cita ON pago(id_cita);
 
 -- Boleta
 CREATE TABLE IF NOT EXISTS boleta (

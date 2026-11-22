@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.veterinaria.modelo.Cita;
 import com.example.veterinaria.security.Autorizacion;
 import com.example.veterinaria.service.CitaService;
+import com.example.veterinaria.service.PagoService;
 
 @RestController
 @RequestMapping("/api/citas")
@@ -29,6 +30,9 @@ public class CitaController {
 
     @Autowired
     private CitaService citaService;
+
+    @Autowired
+    private PagoService pagoService;
 
     @GetMapping
     public ResponseEntity<List<Cita>> findAll() {
@@ -84,6 +88,12 @@ public class CitaController {
 
     @PostMapping
     public ResponseEntity<?> save(@RequestBody Cita cita) {
+        /* Las citas de los clientes se crean junto con el pago (Stripe Checkout);
+           el alta directa queda reservada al administrador. */
+        if (!Autorizacion.esAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("mensaje", "Las citas se crean mediante el pago en linea"));
+        }
         try {
             Cita saved = citaService.save(cita);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
@@ -101,12 +111,37 @@ public class CitaController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Cita cita) {
-        if (!citaService.findById(id).isPresent()) {
+        Cita existente = citaService.findById(id).orElse(null);
+        if (existente == null) {
             return ResponseEntity.notFound().build();
         }
+
+        /* Se lee el estado antes de guardar: al hacer merge Hibernate actualiza la
+           misma instancia managed y el valor viejo quedaría perdido. */
+        String estadoAnterior = existente.getEstado();
+
+        /* Una cita pendiente de pago no puede "volverse" programada desde el
+           formulario: sólo se confirma con el pago en Stripe, o se cancela. */
+        if (PagoService.CITA_PENDIENTE_PAGO.equals(estadoAnterior)) {
+            boolean laCancelan = PagoService.CITA_CANCELADA.equals(cita.getEstado());
+            if (!laCancelan) {
+                cita.setEstado(PagoService.CITA_PENDIENTE_PAGO);
+            } else if (!Autorizacion.esPropioOAdmin(existente.getMascota()
+                    .getCliente().getIdUsuario())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("mensaje", "No tiene permisos para cancelar esta cita"));
+            }
+        }
+
         cita.setIdCita(id);
         try {
-            return ResponseEntity.ok(citaService.save(cita));
+            Cita guardada = citaService.save(cita);
+            if (PagoService.CITA_CANCELADA.equals(cita.getEstado())
+                    && PagoService.CITA_PENDIENTE_PAGO.equals(estadoAnterior)) {
+                /* Se canceló una reserva sin pagar: se cierra también la sesión de Stripe. */
+                pagoService.cancelarPorCita(id);
+            }
+            return ResponseEntity.ok(guardada);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("mensaje", e.getMessage()));

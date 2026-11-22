@@ -7,8 +7,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.veterinaria.modelo.Usuario;
+import com.example.veterinaria.service.PagoService;
 import com.example.veterinaria.service.UsuarioService;
 
 @Controller
@@ -40,8 +42,32 @@ public class PageController {
         return authentication.getName();
     }
 
-@Autowired
-private UsuarioService usuarioService;
+    @Autowired
+    private UsuarioService usuarioService;
+
+    @Autowired
+    private PagoService pagoService;
+
+    // ---------------------------------------------------------------- pagos
+
+    /** Retorno de Stripe tras pagar: confirma el pago y muestra el resultado. */
+    @GetMapping("/pago/exito")
+    public String pagoExito(
+            @RequestParam(name = "session_id", required = false) String sessionId, Model model) {
+        model.addAttribute("resultado", pagoService.procesarRetorno(sessionId));
+        return conActiva(model, "citas", "pago/exito");
+    }
+
+    /** El cliente abandonó el pago en Stripe: se libera la reserva. */
+    @GetMapping("/pago/cancelado")
+    public String pagoCancelado(
+            @RequestParam(name = "session_id", required = false) String sessionId, Model model) {
+        if (sessionId != null && !sessionId.isBlank()) {
+            pagoService.cancelarPorSesion(sessionId);
+        }
+        model.addAttribute("sessionId", sessionId);
+        return conActiva(model, "citas", "pago/cancelado");
+    }
 
 @ModelAttribute("fotoPerfilUrl")
 public String fotoPerfilUrl(Authentication authentication) {

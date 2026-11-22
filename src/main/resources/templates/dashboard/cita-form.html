@@ -58,7 +58,7 @@
 
                         <div class="campo-registro-mascota">
                             <label for="citaServicio">SERVICIO</label>
-                            <select id="citaServicio" required>
+                            <select id="citaServicio" required onchange="actualizarNotaPago()">
                                 <option value="">Seleccione servicio</option>
                             </select>
                         </div>
@@ -101,6 +101,13 @@
                             placeholder="Describa el motivo de la consulta..."></textarea>
                     </div>
 
+                    <p id="notaPago" style="margin:16px 0 0;font-size:14px;color:#666;display:none;">
+                        <i class="bi bi-shield-lock"></i>
+                        Al agendar serás redirigido a <strong>Stripe</strong> para pagar
+                        <strong id="montoPagar"></strong>. La cita se confirma sólo
+                        cuando el pago sea aprobado.
+                    </p>
+
                     <div class="acciones-registro-mascota">
 
                         <a th:href="@{/dashboard/citas}" class="btn-cancelar-registro">
@@ -128,6 +135,8 @@
         /*<![CDATA[*/
         const CITA_ID = [[${idCita}]];
         /*]]>*/
+
+        let SERVICIOS = {};
 
         document.addEventListener('DOMContentLoaded', cargar);
 
@@ -191,8 +200,26 @@
                 const sel = document.getElementById('citaServicio');
                 sel.innerHTML = '<option value="">Seleccione servicio</option>' +
                     servicios.map(s => `<option value="${s.idServicio}">${s.nombre} S/. ${s.precio}</option>`).join('');
+
+                /* Se recuerdan los precios para mostrar lo que hay que pagar. */
+                SERVICIOS = Object.fromEntries(servicios.map(s => [String(s.idServicio), s]));
+                actualizarNotaPago();
             } catch (e) {
                 console.error(e);
+            }
+        }
+
+        function actualizarNotaPago() {
+            const id = document.getElementById('citaServicio').value;
+            const servicio = SERVICIOS[id];
+            const esNueva = CITA_ID === null || CITA_ID === undefined;
+            const nota = document.getElementById('notaPago');
+
+            if (esNueva && servicio) {
+                document.getElementById('montoPagar').textContent = `S/. ${servicio.precio}`;
+                nota.style.display = 'block';
+            } else {
+                nota.style.display = 'none';
             }
         }
 
@@ -273,65 +300,12 @@
         }
 
 
-        //  Modal de Simulación de Pago
-        function mostrarModalPagoSimulado() {
-            return new Promise((resolve) => {
-                if (document.getElementById('modalPagoSimulado')) return;
-
-                const overlay = document.createElement('div');
-                overlay.id = 'modalPagoSimulado';
-                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:99999;font-family:inherit;';
-
-                overlay.innerHTML = `
-                    <div style="background:white;padding:30px;border-radius:10px;width:400px;box-shadow:0 5px 20px rgba(0,0,0,0.3);">
-                        <h3 style="margin-top:0;color:#333;margin-bottom:15px;">Pago de Cita</h3>
-                        <p style="color:#666;font-size:14px;margin-bottom:20px;">Ingrese los datos de su tarjeta para procesar el pago y agendar.</p>
-
-                        <div style="margin-bottom:12px;">
-                            <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">NÚMERO DE TARJETA</label>
-                            <input type="text" id="simCardNum" value="4532 4532 4532 4532" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
-                        </div>
-
-                        <div style="display:flex;gap:10px;margin-bottom:20px;">
-                            <div style="flex:1;">
-                                <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">EXPIRACIÓN</label>
-                                <input type="text" id="simCardExp" value="12/28" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
-                            </div>
-                            <div style="flex:1;">
-                                <label style="display:block;font-size:12px;font-weight:bold;color:#444;margin-bottom:4px;">CVV</label>
-                                <input type="password" id="simCardCvv" value="123" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;">
-                            </div>
-                        </div>
-
-                        <div style="display:flex;justify-content:flex-end;gap:10px;">
-                            <button type="button" id="btnCancelarPago" style="padding:8px 16px;background:#6c757d;color:white;border:none;border-radius:4px;cursor:pointer;">Cancelar</button>
-                            <button type="button" id="btnConfirmarPago" style="padding:8px 16px;background:#198754;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">Pagar y Agendar</button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(overlay);
-
-                document.getElementById('btnConfirmarPago').onclick = () => {
-                    overlay.remove();
-                    resolve(true); // Pago autorizado -> continua guardando la cita
-                };
-
-                document.getElementById('btnCancelarPago').onclick = () => {
-                    overlay.remove();
-                    resolve(false); // Cancelado -> se frena todo
-                };
-            });
-        }
-
-        // función original de guardar, ahora protegida con el modal de pago al inicio
+        /**
+         * Guarda la cita. Si es nueva, primero crea la reserva y redirige a
+         * Stripe Checkout para pagar: la cita sólo queda PROGRAMADA cuando el
+         * pago es aprobado (webhook + página de retorno).
+         */
         async function guardarCita() {
-            // Se abre el modal en medio antes de hacer cualquier cosa
-            const pagoAceptado = await mostrarModalPagoSimulado();
-            if (!pagoAceptado) {
-                return; // Si el usuario cancela el pago, no hace nada
-            }
-
             const btn = document.getElementById('btnGuardar');
             btn.disabled = true;
 
@@ -346,24 +320,49 @@
             };
 
             const esEdicion = CITA_ID !== null && CITA_ID !== undefined;
-            const url = esEdicion ? `/api/citas/${CITA_ID}` : '/api/citas';
-            const method = esEdicion ? 'PUT' : 'POST';
 
             try {
-                const res = await fetch(url, {
-                    method: method,
+                if (esEdicion) {
+                    /* Editar una cita existente no implica un nuevo cobro. */
+                    const res = await fetch(`/api/citas/${CITA_ID}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        credentials: 'same-origin'
+                    });
+
+                    if (res.ok) {
+                        window.location.href = '/dashboard/citas';
+                        return;
+                    }
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.mensaje || 'Error al guardar la cita');
+                    btn.disabled = false;
+                    return;
+                }
+
+                /* Cita nueva: se reserva el horario y se cobra con Stripe. */
+                const span = btn.querySelector('span');
+                const textoOriginal = span.textContent;
+                span.textContent = 'Abriendo Stripe...';
+
+                const res = await fetch('/api/pagos/checkout', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                     credentials: 'same-origin'
                 });
 
-                if (res.ok) {
-                    window.location.href = '/dashboard/citas';
-                } else {
-                    const err = await res.json().catch(() => ({}));
-                    alert(err.mensaje || 'Error al guardar la cita');
-                    btn.disabled = false;
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.url) {
+                    window.location.href = data.url;
+                    return;
                 }
+
+                span.textContent = textoOriginal;
+                alert(data.mensaje || 'No se pudo iniciar el pago');
+                btn.disabled = false;
             } catch (e) {
                 alert('Error de conexión');
                 btn.disabled = false;
