@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     dni           VARCHAR(20),
     especialidad  VARCHAR(100),
     fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP,
     estado        VARCHAR(20) NOT NULL DEFAULT 'ACTIVO',
     foto_perfil   VARCHAR(255),
     id_rol        BIGINT NOT NULL,

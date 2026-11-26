@@ -116,6 +116,7 @@ body {
 
 .menu-dashboard a:hover {
     background-color: #e8ebf0;
+    color: #4b4f5c;
 }
 
 .menu-dashboard .activo {
@@ -1217,6 +1218,36 @@ body {
 
     padding: 13px 20px;
 }
+
+/*correccion botones admin*/
+#tablaServicios .col-acciones-header,
+#tablaUsuarios .col-acciones-header,
+#tablaVets .col-acciones-header {
+    justify-self: start;
+    text-align: left;
+}
+
+#tablaServicios .acciones-mascota,
+#tablaUsuarios .acciones-mascota,
+#tablaVets .acciones-mascota {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+
+#tablaCitas .col-acciones-header {
+    justify-self: end;
+    text-align: right;
+}
+
+#tablaCitas .acciones-cita {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+/*fin*/
 
 .tabla-mascotas-header {
     background-color: #f7f8fa;

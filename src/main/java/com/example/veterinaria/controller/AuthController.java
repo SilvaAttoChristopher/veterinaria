@@ -131,6 +131,7 @@ public class AuthController {
                     datos.put("especialidad", valorOrVacio(usuario.getEspecialidad()));
                     datos.put("estado", usuario.getEstado());
                     datos.put("rol", usuario.getRol().getNombre());
+                    datos.put("fechaActualizacion", usuario.getFechaActualizacion());
                     return ResponseEntity.ok((Object) datos);
                 })
                 .orElse(ResponseEntity.notFound().build());
