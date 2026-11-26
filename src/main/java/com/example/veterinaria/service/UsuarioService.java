@@ -3,6 +3,7 @@ package com.example.veterinaria.service;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -100,6 +101,7 @@ public class UsuarioService {
         existente.setCorreo(cambios.getCorreo());
         existente.setTelefono(cambios.getTelefono());
         existente.setDireccion(cambios.getDireccion());
+        existente.setFechaActualizacion(LocalDateTime.now());
 
         return usuarioRepository.save(existente);
     }

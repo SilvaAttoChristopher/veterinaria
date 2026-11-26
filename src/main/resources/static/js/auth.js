@@ -1,3 +1,70 @@
+// ===== NUEVO: utilidades de validación =====
+const Validator = {
+    // Marca un campo en rojo y muestra el mensaje debajo
+    markInvalid(input, message) {
+        input.classList.add('is-invalid');
+
+        let feedback = input.parentElement.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            input.insertAdjacentElement('afterend', feedback);
+        }
+        feedback.textContent = message;
+    },
+
+    // Quita el estado de error de un campo
+    clearInvalid(input) {
+        input.classList.remove('is-invalid');
+        const feedback = input.parentElement.querySelector('.invalid-feedback');
+        if (feedback) feedback.remove();
+    },
+
+    // Valida una lista de ids. Devuelve true si todos son válidos
+    validateFields(ids) {
+        let valid = true;
+        let firstInvalid = null;
+
+        ids.forEach(id => {
+            const input = document.getElementById(id);
+            if (!input) return;
+
+            const value = input.value.trim();
+
+            if (!value) {
+                this.markInvalid(input, 'Este campo es obligatorio');
+                valid = false;
+                if (!firstInvalid) firstInvalid = input;
+            } else if (input.type === 'email' && !input.checkValidity()) {
+                this.markInvalid(input, 'Ingrese un correo válido');
+                valid = false;
+                if (!firstInvalid) firstInvalid = input;
+            } else {
+                this.clearInvalid(input);
+            }
+        });
+
+        if (firstInvalid) firstInvalid.focus();
+        return valid;
+    },
+
+    // Quita el error automáticamente cuando el usuario empieza a escribir
+    attachLiveClear(ids) {
+        ids.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => this.clearInvalid(input));
+            }
+        });
+    },
+
+    // Limpia todos los errores de un contenedor (modal o formulario)
+    clearAll(container) {
+        if (!container) return;
+        container.querySelectorAll('.is-invalid').forEach(input => this.clearInvalid(input));
+    }
+};
+
 // Auth utility functions
 const Auth = {
     async login(username, password) {
@@ -104,16 +171,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // ===== NUEVO: ids de los campos y limpieza en vivo =====
+    const loginFields = ['login-email', 'login-password'];
+    const registerFields = [
+        'reg-nombres', 'reg-apellidos', 'reg-email',
+        'reg-password', 'reg-dni', 'reg-telefono', 'reg-direccion'
+    ];
+    const staffFields = ['staff-email', 'staff-password'];
+
+    Validator.attachLiveClear(loginFields);
+    Validator.attachLiveClear(registerFields);
+    Validator.attachLiveClear(staffFields);
+
+    // ===== NUEVO: limpiar errores al cerrar los modales =====
+    ['Login', 'Registro'].forEach(id => {
+        const modalEl = document.getElementById(id);
+        if (modalEl) {
+            modalEl.addEventListener('hidden.bs.modal', () => Validator.clearAll(modalEl));
+        }
+    });
+
     const loginBtn = document.querySelector('#loginBtn');
     if (loginBtn) {
         loginBtn.addEventListener('click', async function() {
+            // CAMBIO: validación visual en lugar de alert
+            if (!Validator.validateFields(loginFields)) return;
+
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-
-            if (!email || !password) {
-                alert('Complete todos los campos');
-                return;
-            }
 
             const result = await Auth.login(email, password);
             if (result.success) {
@@ -127,6 +212,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const registerBtn = document.querySelector('#registerBtn');
     if (registerBtn) {
         registerBtn.addEventListener('click', async function() {
+            // CAMBIO: validación visual en lugar de alert
+            if (!Validator.validateFields(registerFields)) return;
+
             const nombres = document.getElementById('reg-nombres').value;
             const apellidos = document.getElementById('reg-apellidos').value;
             const correo = document.getElementById('reg-email').value;
@@ -134,11 +222,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const dni = document.getElementById('reg-dni').value;
             const telefono = document.getElementById('reg-telefono').value;
             const direccion = document.getElementById('reg-direccion').value;
-
-            if (!nombres || !apellidos || !correo || !password || !dni) {
-                alert('Complete todos los campos obligatorios');
-                return;
-            }
 
             const userData = {
                 username: correo,
@@ -169,6 +252,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (staffLoginForm) {
         staffLoginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            // NUEVO: validación visual
+            if (!Validator.validateFields(staffFields)) return;
+
             const email = document.getElementById('staff-email').value;
             const password = document.getElementById('staff-password').value;
 

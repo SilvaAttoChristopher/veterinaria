@@ -58,6 +58,10 @@
                             <p id="campoEspecialidad">-</p>
                         </div>
                     </div>
+                    <div class="dato-perfil">
+                        <span>ÚLTIMA ACTUALIZACIÓN</span>
+                        <p id="campoFechaActualizacion">-</p>
+                    </div>
                 </div>
 
             </section>
@@ -108,6 +112,22 @@
             document.getElementById('campoCorreo').textContent = usuarioActual.correo || '-';
             document.getElementById('campoTelefono').textContent = usuarioActual.telefono || '-';
             document.getElementById('campoEspecialidad').textContent = usuarioActual.especialidad || '-';
+
+            const campoFecha = document.getElementById('campoFechaActualizacion');
+            if (campoFecha) {
+                if (usuarioActual.fechaActualizacion) {
+                    const fecha = new Date(usuarioActual.fechaActualizacion);
+                    campoFecha.textContent = fecha.toLocaleString('es-PE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } else {
+                    campoFecha.textContent = 'Sin actualizaciones previas';
+                }
+            }
 
             await cargarHorarios();
         }

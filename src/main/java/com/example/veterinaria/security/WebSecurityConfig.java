@@ -7,16 +7,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authorization.AuthorizationDecision;
-import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
-
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -31,6 +32,10 @@ public class WebSecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                        .sessionFixation().migrateSession()
+                )
                 .authorizeHttpRequests(auth -> auth
                         /* ---------------- públicas ---------------- */
                         .requestMatchers("/", "/staff", "/index.html", "/favicon.ico").permitAll()
@@ -76,6 +81,7 @@ public class WebSecurityConfig {
 
                         /* ---------------- sólo CLIENTE ---------------- */
                         .requestMatchers(
+                                "/dashboard/perfil", "/dashboard/editar-perfil",
                                 "/dashboard/mascotas", "/dashboard/registrar-mascota",
                                 "/dashboard/editar-mascota/**", "/dashboard/mascota/**",
                                 "/dashboard/citas", "/dashboard/registrar-cita",
@@ -126,7 +132,6 @@ public class WebSecurityConfig {
                             if (request.getRequestURI().startsWith("/api/")) {
                                 json(response, 401, "{\"mensaje\":\"No autenticado\"}");
                             } else {
-                                // S1: Redirige al inicio indicando que abra el modal de login
                                 response.sendRedirect("/?login=true");
                             }
                         })
@@ -141,15 +146,16 @@ public class WebSecurityConfig {
                             Authentication auth =
                                     SecurityContextHolder.getContext().getAuthentication();
 
-                            if (auth != null && auth.isAuthenticated()
-                                    && tieneRol(auth, "ROLE_ADMIN")) {
-                                destino = "/dashboard/admin";
-                            } else if (auth != null && auth.isAuthenticated()
-                                    && tieneRol(auth, "ROLE_VETERINARIO")) {
-                                destino = "/dashboard/perfil-medico";
-                            } else if (auth != null && auth.isAuthenticated()) {
-                                destino = "/dashboard/perfil";
+                            if (auth != null && auth.isAuthenticated()) {
+                                if (tieneRol(auth, "ROLE_ADMIN")) {
+                                    destino = "/dashboard/admin";
+                                } else if (tieneRol(auth, "ROLE_VETERINARIO")) {
+                                    destino = "/dashboard/perfil-medico";
+                                } else if (tieneRol(auth, "ROLE_CLIENTE")) {
+                                    destino = "/dashboard/perfil";
+                                }
                             }
+
                             response.sendRedirect(destino);
                         })
                 );

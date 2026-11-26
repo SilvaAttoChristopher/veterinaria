@@ -13,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -74,6 +75,9 @@ public class Usuario {
     @Column(nullable = false)
     private LocalDateTime fechaRegistro = LocalDateTime.now();
 
+    @Column(name = "fecha_actualizacion")
+    private LocalDateTime fechaActualizacion;
+
     @NotBlank
     @Size(max = 20)
     @Column(nullable = false, length = 20)
@@ -96,6 +100,11 @@ public class Usuario {
         this.nombres = nombres;
         this.apellidos = apellidos;
         this.rol = rol;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.fechaActualizacion = LocalDateTime.now();
     }
 
     public Long getIdUsuario() { return idUsuario; }
@@ -130,6 +139,9 @@ public class Usuario {
 
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
     public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
+
+    public LocalDateTime getFechaActualizacion() { return fechaActualizacion; }
+    public void setFechaActualizacion(LocalDateTime fechaActualizacion) { this.fechaActualizacion = fechaActualizacion; }
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
